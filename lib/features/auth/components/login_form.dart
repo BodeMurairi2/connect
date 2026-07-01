@@ -14,7 +14,10 @@ class _LoginFormState extends State<LoginForm> {
   bool _obscurePassword = true;
 
   static const _fieldFill = Color(0xFFF0F4FF);
-  static const _labelStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 14);
+  static const _labelStyle = TextStyle(
+    fontWeight: FontWeight.bold,
+    fontSize: 14,
+  );
   static final _fieldBorder = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide.none,
@@ -66,7 +69,6 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 36),
 
-            // Email
             const Text("Email", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -78,6 +80,7 @@ class _LoginFormState extends State<LoginForm> {
                 fillColor: _fieldFill,
                 border: _fieldBorder,
               ),
+              // validate only alustudent.com and alueducation.com
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
@@ -90,7 +93,6 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 16),
 
-            // Password
             const Text("Password", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -118,7 +120,7 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 4),
 
-            // Forgot password
+            // Add forgot password in case an user needs to change password
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -128,7 +130,6 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 8),
 
-            // Sign In button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
