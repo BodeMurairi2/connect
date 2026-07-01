@@ -87,7 +87,6 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 28),
 
-            // First Name
             const Text("First Name", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -107,7 +106,6 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 16),
 
-            // Last Name
             const Text("Last Name", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -127,7 +125,7 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 16),
 
-            // ALU Email
+            // create the email field. only ALU email is valid email for registration.
             const Text("ALU Email", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -143,6 +141,7 @@ class _RegisterFormState extends State<RegisterForm> {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
                 }
+                // validate only @alustudent.com or alueducation.com
                 if (!value.trim().toLowerCase().endsWith('@alustudent.com')) {
                   return "Must be a valid ALU email";
                 }
@@ -151,7 +150,6 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 16),
 
-            // Password
             const Text("Password", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -170,16 +168,16 @@ class _RegisterFormState extends State<RegisterForm> {
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
+              // for user safety, only password with at least 8 chars will be accepted
               validator: (value) {
                 if (value == null || value.length < 8 || value.length > 16) {
                   return "Password must be between 8 and 16 characters";
-                }
+                } // additional validation rules will be implemented later
                 return null;
               },
             ),
             const SizedBox(height: 16),
 
-            // Confirm Password
             const Text("Confirm Password", style: _labelStyle),
             const SizedBox(height: 8),
             TextFormField(
@@ -213,7 +211,6 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 28),
 
-            // Create Account button
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
