@@ -1,2 +1,0 @@
-// Bookmarked opportunities (Saved tab)
-
