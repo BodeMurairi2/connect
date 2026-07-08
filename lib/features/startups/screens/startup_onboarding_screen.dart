@@ -93,6 +93,11 @@ class _StartupOnboardingScreenState extends State<StartupOnboardingScreen> {
                   ),
                 ),
                 SizedBox(height: 16),
+                const Text(
+                  "Domain",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                const SizedBox(height: 8),
                 DomainSelector(
                   domains: _domains,
                   onChanged: (value) => setState(() => _selectedDomain = value),
