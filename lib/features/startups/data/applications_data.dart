@@ -7,6 +7,9 @@ class Applicant {
   final String fieldStudy;
   final String status;
   final Color avatarColor;
+  final String year;
+  final List<String> skills;
+  final String bio;
 
   const Applicant({
     required this.firstName,
@@ -15,6 +18,9 @@ class Applicant {
     required this.fieldStudy,
     required this.status,
     required this.avatarColor,
+    required this.year,
+    required this.skills,
+    required this.bio,
   });
 }
 
@@ -29,23 +35,32 @@ final List<Applicant> applicants = [
     firstName: 'Amara',
     lastName: 'Diallo',
     role: 'Flutter Developer Intern',
-    fieldStudy: 'Software Engineering',
+    fieldStudy: 'CS',
+    year: 'Year 3',
+    skills: ['Flutter', 'Firebase', 'Dart'],
+    bio: "I've built three Flutter apps and contributed to open source...",
     status: 'Pending',
     avatarColor: Colors.orange,
   ),
   Applicant(
-    firstName: 'Kwame',
-    lastName: 'Mensah',
-    role: 'UI/UX Design Intern',
-    fieldStudy: 'Entrepreneurial Leadership',
+    firstName: 'Bode',
+    lastName: 'Murairi',
+    role: 'Flutter Developer Intern',
+    fieldStudy: 'CS',
+    year: 'Year 3',
+    skills: ['Flutter', 'Firebase', 'Python'],
+    bio: 'Passionate mobile dev with hands-on experience in Flutter...',
     status: 'Reviewing',
-    avatarColor: Colors.blue,
+    avatarColor: Colors.purple,
   ),
   Applicant(
     firstName: 'Fatima',
     lastName: 'Osei',
     role: 'Marketing Lead',
-    fieldStudy: 'Entrepreneurial Leadership',
+    fieldStudy: 'SE',
+    year: 'Year 4',
+    skills: ['Flutter', 'Dart', 'UI/UX'],
+    bio: 'Experienced Flutter dev with 2 published apps on Play Store...',
     status: 'Accepted',
     avatarColor: Colors.green,
   ),
