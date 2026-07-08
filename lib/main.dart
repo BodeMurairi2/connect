@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:connect/features/startups/screens/startup_dashboard_screen.dart';
-import 'package:connect/features/startups/screens/post_opportunity_screen.dart';
+import 'package:connect/features/startups/screens/applicants_screen.dart';
 
 void main() {
   runApp(const AnzaConnect());
@@ -14,7 +13,7 @@ class AnzaConnect extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
-      home: PostOpportunityScreen(),
+      home: const ApplicantsScreen(),
     );
   }
 }
