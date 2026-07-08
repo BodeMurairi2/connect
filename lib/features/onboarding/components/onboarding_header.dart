@@ -3,12 +3,12 @@ import 'package:flutter/material.dart';
 class OnboardingHeader extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
-  final VoidCallback onSkip;
+  final VoidCallback? onSkip;
   const OnboardingHeader({
     super.key,
     required this.currentStep,
     required this.totalSteps,
-    required this.onSkip,
+    this.onSkip,
   });
 
   @override
@@ -16,12 +16,13 @@ class OnboardingHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Spacer(),
-            TextButton(onPressed: onSkip, child: Text("Skip")),
-          ],
-        ),
+        if (onSkip != null)
+          Row(
+            children: [
+              Spacer(),
+              TextButton(onPressed: onSkip, child: Text("Skip")),
+            ],
+          ),
         SizedBox(height: 8),
         Row(
           children: [
