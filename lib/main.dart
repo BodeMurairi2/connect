@@ -4,6 +4,8 @@ import 'package:connect/features/student/screens/feed_screen.dart';
 import 'package:connect/features/student/screens/opportunity_detail_screen.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/features/student/screens/apply_screen.dart';
+import 'package:connect/features/student/screens/bookmark_screen.dart';
+import 'package:connect/features/student/screens/search_screens.dart';
 
 void main() {
   runApp(const AnzaConnect());
@@ -17,7 +19,7 @@ class AnzaConnect extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
-      home: ApplyScreen(opportunity: feedOpportunities[0]),
+      home: SearchScreens(),
     );
   }
 }
