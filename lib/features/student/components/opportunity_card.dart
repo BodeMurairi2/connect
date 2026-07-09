@@ -4,11 +4,13 @@ import 'package:connect/features/student/data/feed_data.dart';
 class OpportunityCard extends StatelessWidget {
   final FeedOpportunity opportunity;
   final bool featured;
+  final bool isApplied;
 
   const OpportunityCard({
     super.key,
     required this.opportunity,
     this.featured = false,
+    this.isApplied = false,
   });
 
   Color _compensationColor(String compensation) {
@@ -167,23 +169,28 @@ class OpportunityCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if (opportunity.skillsMatch > 0)
+              if (isApplied)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
                   ),
+                  child: const Text(
+                    'Applied',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.blue),
+                  ),
+                )
+              else if (opportunity.skillsMatch > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.orange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     '${opportunity.skillsMatch} skills match',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.orange,
-                    ),
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.orange),
                   ),
                 )
               else
