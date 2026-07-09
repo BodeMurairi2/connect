@@ -337,6 +337,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: 2,
         selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),

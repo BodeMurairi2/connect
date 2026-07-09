@@ -296,6 +296,7 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
         currentIndex: _currentIndex,
         onTap: (value) => setState(() => _currentIndex = value),
         selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
