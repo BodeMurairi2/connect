@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:connect/features/auth/components/login_form.dart';
-import 'package:connect/features/auth/screens/register_screen.dart';
 
-// Email/password sign in + Google OAuth
-class Login extends StatefulWidget {
+class Login extends StatelessWidget {
   const Login({super.key});
 
   @override
-  State<Login> createState() => _LoginState();
-}
-
-class _LoginState extends State<Login> {
-  @override
   Widget build(BuildContext context) {
+    final role = GoRouterState.of(context).extra as String? ?? 'student';
+
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
           child: Center(
             child: Column(
               children: [
-                LoginForm(),
+                LoginForm(
+                  onSuccess: () => context.go(
+                    role == 'student' ? '/student' : '/startup',
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
@@ -75,14 +75,7 @@ class _LoginState extends State<Login> {
                             style: TextStyle(color: Colors.grey),
                           ),
                           TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const RegisterScreen(),
-                                ),
-                              );
-                            },
+                            onPressed: () => context.go('/register'),
                             child: const Text("Sign Up"),
                           ),
                         ],
@@ -91,7 +84,7 @@ class _LoginState extends State<Login> {
                     ],
                   ),
                 ),
-              ]
+              ],
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:connect/features/auth/components/register_form.dart';
 import 'package:connect/features/auth/screens/login_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -74,14 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             style: TextStyle(color: Colors.grey),
                           ),
                           TextButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const Login(),
-                                ),
-                              );
-                            },
+                            onPressed: () => context.go('/login'),
                             child: const Text("Login"),
                           ),
                         ],

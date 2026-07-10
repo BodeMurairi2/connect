@@ -9,8 +9,6 @@ class StartupDashboardScreen extends StatefulWidget {
 }
 
 class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
-  int _currentIndex = 0;
-
   Widget _buildStatCard(String count, String label, Color color) {
     return Container(
       decoration: BoxDecoration(
@@ -290,23 +288,6 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
             ),
           ),
           SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (value) => setState(() => _currentIndex = value),
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Applicants',
-          ),
         ],
       ),
     );

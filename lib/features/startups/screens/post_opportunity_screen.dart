@@ -355,22 +355,6 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard),
-            label: "Dashboard",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Applicants',
-          ),
-        ],
-      ),
     );
   }
 }

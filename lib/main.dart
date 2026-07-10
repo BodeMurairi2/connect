@@ -1,11 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:connect/features/startups/screens/applicants_screen.dart';
-import 'package:connect/features/student/screens/feed_screen.dart';
-import 'package:connect/features/student/screens/opportunity_detail_screen.dart';
-import 'package:connect/features/student/data/feed_data.dart';
-import 'package:connect/features/student/screens/apply_screen.dart';
-import 'package:connect/features/student/screens/bookmark_screen.dart';
-import 'package:connect/features/student/screens/search_screens.dart';
+import 'package:connect/core/router/app_router.dart';
 
 void main() {
   runApp(const AnzaConnect());
@@ -16,10 +10,10 @@ class AnzaConnect extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(scaffoldBackgroundColor: Colors.white),
-      home: SearchScreens(),
+      routerConfig: appRouter,
     );
   }
 }

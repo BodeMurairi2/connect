@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/features/student/components/opportunity_detail_header.dart';
 import 'package:connect/features/student/components/opportunity_skills_section.dart';
@@ -107,7 +108,8 @@ class OpportunityDetailScreen extends StatelessWidget {
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: () {},
+            onPressed: () =>
+                context.push('/student/opportunity/apply', extra: opportunity),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
