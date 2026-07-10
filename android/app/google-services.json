@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "215153960663",
+    "project_id": "anzaconnect",
+    "storage_bucket": "anzaconnect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215153960663:android:5b400ab8bc5ef68d39f292",
+        "android_client_info": {
+          "package_name": "com.example.connect"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhad0b3BgwurWxMOb1GA8dCTA3FySqIeU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
