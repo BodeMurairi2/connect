@@ -56,22 +56,24 @@ class DefaultFirebaseOptions {
     projectId: 'anzaconnect',
     storageBucket: 'anzaconnect.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCve28KRCa-Xajuy4z74QT9DMkZhp4YWj8',
     appId: '1:215153960663:ios:c274c40bbfe0d0b139f292',
     messagingSenderId: '215153960663',
     projectId: 'anzaconnect',
     storageBucket: 'anzaconnect.firebasestorage.app',
+    androidClientId: '215153960663-36ibq162vs2aa83rf6atm7qn0os5ocus.apps.googleusercontent.com',
+    iosClientId: '215153960663-oap6qdst0ofgg384fq8766vrlildf5i0.apps.googleusercontent.com',
     iosBundleId: 'com.example.connect',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCve28KRCa-Xajuy4z74QT9DMkZhp4YWj8',
     appId: '1:215153960663:ios:c274c40bbfe0d0b139f292',
     messagingSenderId: '215153960663',
     projectId: 'anzaconnect',
     storageBucket: 'anzaconnect.firebasestorage.app',
+    androidClientId: '215153960663-36ibq162vs2aa83rf6atm7qn0os5ocus.apps.googleusercontent.com',
+    iosClientId: '215153960663-oap6qdst0ofgg384fq8766vrlildf5i0.apps.googleusercontent.com',
     iosBundleId: 'com.example.connect',
   );
 
