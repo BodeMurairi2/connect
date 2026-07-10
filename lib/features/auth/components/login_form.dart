@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class LoginForm extends StatefulWidget {
-  const LoginForm({super.key});
+  final VoidCallback onSuccess;
+  const LoginForm({super.key, required this.onSuccess});
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -135,7 +136,7 @@ class _LoginFormState extends State<LoginForm> {
               child: ElevatedButton(
                 onPressed: () {
                   if (_formkey.currentState!.validate()) {
-                    // auth wired in later
+                    widget.onSuccess();
                   }
                 },
                 style: ElevatedButton.styleFrom(

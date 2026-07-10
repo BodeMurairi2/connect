@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:connect/features/onboarding/components/onboarding_header.dart';
 
 class RoleSelectionScreen extends StatefulWidget {
@@ -199,7 +200,9 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _selectedRole != null ? () {} : null,
+                    onPressed: _selectedRole != null
+                        ? () => context.go('/login', extra: _selectedRole)
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue,
                       foregroundColor: Colors.white,
