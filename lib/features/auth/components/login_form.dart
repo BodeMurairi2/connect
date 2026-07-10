@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connect/repositories/auth_repository.dart';
 
 class LoginForm extends StatefulWidget {
   final VoidCallback onSuccess;
@@ -13,6 +15,7 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
   static const _labelStyle = TextStyle(
@@ -134,9 +137,32 @@ class _LoginFormState extends State<LoginForm> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formkey.currentState!.validate()) {
-                    widget.onSuccess();
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final credential = await _authRepository.signInWithEmail(
+                        _emailController.text.trim(),
+                        _passwordController.text,
+                      );
+                      if (credential.user!.emailVerified) {
+                        widget.onSuccess();
+                      } else {
+                        await _authRepository.sendEmailVerification();
+                        messenger.showSnackBar(
+                          const SnackBar(
+                            content: Text('Please verify your email. A verification link has been sent.'),
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+                      }
+                    } on FirebaseAuthException catch (error) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(error.message ?? 'Login Failed'),
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

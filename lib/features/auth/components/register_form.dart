@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connect/repositories/auth_repository.dart';
 
 class RegisterForm extends StatefulWidget {
-  const RegisterForm({super.key});
+  final VoidCallback onSuccess;
+  final String role;
+
+  const RegisterForm({super.key, required this.onSuccess, required this.role});
 
   @override
   State<RegisterForm> createState() => _RegisterFormState();
@@ -17,6 +22,7 @@ class _RegisterFormState extends State<RegisterForm> {
       TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
   static const _labelStyle = TextStyle(
@@ -214,9 +220,31 @@ class _RegisterFormState extends State<RegisterForm> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formkey.currentState!.validate()) {
-                    // auth wired in later
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final credential = await _authRepository
+                          .registerWithEmail(
+                            _emailController.text.trim(),
+                            _passwordController.text,
+                          );
+                      await _authRepository.saveUserToFirestore(
+                        uid: credential.user!.uid,
+                        firstName: _firstNameController.text.trim(),
+                        lastName: _lastNameController.text.trim(),
+                        email: _emailController.text.trim(),
+                        role: widget.role,
+                      );
+                      await _authRepository.sendEmailVerification();
+                      widget.onSuccess();
+                    } on FirebaseAuthException catch (error) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(error.message ?? 'Registration failed'),
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

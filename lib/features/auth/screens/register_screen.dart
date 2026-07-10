@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:connect/features/auth/components/register_form.dart';
-import 'package:connect/features/auth/screens/login_screen.dart';
 import 'package:go_router/go_router.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -13,13 +12,17 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
+    final role = GoRouterState.of(context).extra as String? ?? 'student';
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
           child: Center(
             child: Column(
               children: [
-                RegisterForm(),
+                RegisterForm(
+                  onSuccess: () => context.go('/login', extra: role),
+                  role: role,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(

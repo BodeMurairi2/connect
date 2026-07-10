@@ -16,9 +16,8 @@ class Login extends StatelessWidget {
             child: Column(
               children: [
                 LoginForm(
-                  onSuccess: () => context.go(
-                    role == 'student' ? '/student' : '/startup',
-                  ),
+                  onSuccess: () =>
+                      context.go(role == 'student' ? '/student' : '/startup'),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -75,7 +74,8 @@ class Login extends StatelessWidget {
                             style: TextStyle(color: Colors.grey),
                           ),
                           TextButton(
-                            onPressed: () => context.go('/register'),
+                            onPressed: () =>
+                                context.go('/register', extra: role),
                             child: const Text("Sign Up"),
                           ),
                         ],
