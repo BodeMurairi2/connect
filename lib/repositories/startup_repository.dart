@@ -41,6 +41,26 @@ class StartupRepository {
     return doc.exists;
   }
 
+  Future<Map<String, dynamic>?> getStartupProfile(String uid) async {
+    final doc = await _firestore.collection('Startups').doc(uid).get();
+    return doc.exists ? doc.data() : null;
+  }
+
+  Future<List<Map<String, dynamic>>> getStartupOpportunities(String uid) async {
+    final snapshot = await _firestore
+        .collection('Opportunities')
+        .where('startupUid', isEqualTo: uid)
+        .get();
+    final docs = snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+    docs.sort((a, b) {
+      final aTime = a['createdAt'];
+      final bTime = b['createdAt'];
+      if (aTime == null || bTime == null) return 0;
+      return bTime.compareTo(aTime);
+    });
+    return docs;
+  }
+
   Future<String> uploadDocument(String uid, File file, String docType) async {
     final fileName = file.path.split('/').last;
     return await _r2.uploadFile(file, 'startups/$uid/$docType/$fileName');

@@ -13,10 +13,10 @@ class StartupHomeScreen extends StatefulWidget {
 class _StartupHomeScreenState extends State<StartupHomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    StartupDashboardScreen(),
-    PostOpportunityScreen(),
-    ApplicantsScreen(),
+  late final List<Widget> _screens = [
+    StartupDashboardScreen(onNewOpportunity: () => setState(() => _currentIndex = 1)),
+    PostOpportunityScreen(onPosted: () => setState(() => _currentIndex = 0)),
+    const ApplicantsScreen(),
   ];
 
   @override

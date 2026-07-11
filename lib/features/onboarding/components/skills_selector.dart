@@ -16,6 +16,13 @@ class SkillsSelector extends StatefulWidget {
 
 class _SkillsSelectorState extends State<SkillsSelector> {
   final Set<String> _selected = {};
+  late List<String> _skills;
+
+  @override
+  void initState() {
+    super.initState();
+    _skills = List.from(widget.skills);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +38,7 @@ class _SkillsSelectorState extends State<SkillsSelector> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            ...widget.skills.map(
+            ..._skills.map(
               (skill) => FilterChip(
                 label: Text(skill),
                 selected: _selected.contains(skill),
@@ -54,7 +61,37 @@ class _SkillsSelectorState extends State<SkillsSelector> {
             ),
             ActionChip(
               label: Text("+ Add more"),
-              onPressed: () {},
+              onPressed: () async {
+                final controller = TextEditingController();
+                final skill = await showDialog<String>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Add Skill'),
+                    content: TextField(
+                      controller: controller,
+                      autofocus: true,
+                      decoration: const InputDecoration(hintText: 'e.g. Swift'),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, controller.text.trim()),
+                        child: const Text('Add', style: TextStyle(color: Colors.blue)),
+                      ),
+                    ],
+                  ),
+                );
+                if (skill != null && skill.isNotEmpty) {
+                  setState(() {
+                    if (!_skills.contains(skill)) _skills.add(skill);
+                    _selected.add(skill);
+                    widget.onChanged(_selected);
+                  });
+                }
+              },
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: Colors.grey.shade300),

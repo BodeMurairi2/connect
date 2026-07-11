@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class FeedOpportunity {
+  final String opportunityId;
+  final String startupUid;
   final String startupName;
   final String role;
   final String domain;
@@ -17,6 +19,8 @@ class FeedOpportunity {
   final List<String> responsibilities;
 
   const FeedOpportunity({
+    this.opportunityId = '',
+    this.startupUid = '',
     required this.startupName,
     required this.role,
     required this.domain,
