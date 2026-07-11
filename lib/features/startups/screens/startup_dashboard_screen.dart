@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:connect/features/startups/components/startup_profile_sheet.dart';
+import 'package:connect/features/startups/screens/edit_opportunity_screen.dart';
 import 'package:connect/repositories/startup_repository.dart';
 
 class StartupDashboardScreen extends StatefulWidget {
@@ -80,7 +82,17 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
     );
   }
 
+  void _openEditScreen(Map<String, dynamic> opportunity) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditOpportunityScreen(opportunity: opportunity),
+      ),
+    ).then((_) => _loadData());
+  }
+
   Widget _buildOpportunityCard(Map<String, dynamic> opportunity) {
+    final isOpen = opportunity['isOpen'] == true;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(16),
@@ -116,18 +128,34 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
               ],
             ),
           ),
+          GestureDetector(
+            onTap: () => _openEditScreen(opportunity),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F4FF),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: Colors.blue,
+              ),
+            ),
+          ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: isOpen
+                  ? const Color(0xFFE8F5E9)
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              opportunity['isOpen'] == true ? 'Open' : 'Closed',
+              isOpen ? 'Open' : 'Closed',
               style: TextStyle(
-                color: opportunity['isOpen'] == true
-                    ? Colors.green
-                    : Colors.grey,
+                color: isOpen ? Colors.green : Colors.grey,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -197,13 +225,20 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    CircleAvatar(
-                      backgroundColor: Colors.blue,
-                      child: Text(
-                        firstLetter,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                    GestureDetector(
+                      onTap: () => StartupProfileSheet.show(
+                        context,
+                        name: startupName,
+                        email: FirebaseAuth.instance.currentUser?.email ?? '',
+                      ),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(
+                          firstLetter,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

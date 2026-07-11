@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 class SkillsSelector extends StatefulWidget {
   final List<String> skills;
+  final Set<String>? initialSelected;
   final Function(Set<String>) onChanged;
 
   const SkillsSelector({
     super.key,
     required this.skills,
+    this.initialSelected,
     required this.onChanged,
   });
 
@@ -22,6 +24,12 @@ class _SkillsSelectorState extends State<SkillsSelector> {
   void initState() {
     super.initState();
     _skills = List.from(widget.skills);
+    if (widget.initialSelected != null) {
+      _selected.addAll(widget.initialSelected!);
+      for (final s in widget.initialSelected!) {
+        if (!_skills.contains(s)) _skills.add(s);
+      }
+    }
   }
 
   @override

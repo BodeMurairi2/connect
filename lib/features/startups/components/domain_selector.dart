@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 class DomainSelector extends StatefulWidget {
   final List<String> domains;
+  final String? initialValue;
   final Function(String?) onChanged;
 
   const DomainSelector({
     super.key,
     required this.domains,
+    this.initialValue,
     required this.onChanged,
   });
 
@@ -17,6 +19,17 @@ class DomainSelector extends StatefulWidget {
 class _DomainSelectorState extends State<DomainSelector> {
   String? _selected;
   final List<String> _customDomains = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialValue != null) {
+      _selected = widget.initialValue;
+      if (!widget.domains.contains(widget.initialValue)) {
+        _customDomains.add(widget.initialValue!);
+      }
+    }
+  }
 
   void _showAddDomainDialog() {
     final controller = TextEditingController();

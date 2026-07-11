@@ -34,5 +34,32 @@ class OpportunityRepository {
     });
   }
 
-
+  Future<void> updateOpportunity(
+    String id, {
+    required String title,
+    required String roleType,
+    required String description,
+    required List<String> skills,
+    required String duration,
+    required String compensation,
+    required String currency,
+    required String salary,
+    required String locationType,
+    required String address,
+    required bool isOpen,
+  }) async {
+    await _firestore.collection('Opportunities').doc(id).update({
+      'title': title,
+      'roleType': roleType,
+      'description': description,
+      'skills': skills,
+      'duration': duration,
+      'compensation': compensation,
+      'currency': currency,
+      'salary': salary,
+      'locationType': locationType,
+      'address': address,
+      'isOpen': isOpen,
+    });
+  }
 }
