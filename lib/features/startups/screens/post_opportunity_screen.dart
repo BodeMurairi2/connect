@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connect/features/startups/components/domain_selector.dart';
+import 'package:connect/features/startups/components/opportunity_preview_card.dart';
+import 'package:connect/features/startups/screens/opportunity_preview_screen.dart';
 import 'package:connect/features/onboarding/components/skills_selector.dart';
 import 'package:connect/features/startups/data/post_opportunity.dart';
 import 'package:connect/repositories/opportunity_repository.dart';
+import 'package:connect/repositories/startup_repository.dart';
 
 class PostOpportunityScreen extends StatefulWidget {
   final VoidCallback? onPosted;
@@ -16,6 +19,9 @@ class PostOpportunityScreen extends StatefulWidget {
 class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
   final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
   bool _isLoading = false;
+  String _startupName = '';
+  bool _isVerified = false;
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _salaryController = TextEditingController();
@@ -28,12 +34,84 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
   String _selectedCurrency = 'FrW';
 
   @override
+  void initState() {
+    super.initState();
+    _loadStartupProfile();
+  }
+
+  Future<void> _loadStartupProfile() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final profile = await StartupRepository().getStartupProfile(uid);
+      if (mounted && profile != null) {
+        setState(() {
+          _startupName = profile['name'] ?? '';
+          _isVerified = profile['isVerified'] == true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
     _salaryController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _post() async {
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    await OpportunityRepository().postOpportunity(
+      startupUid: uid,
+      title: _titleController.text.trim(),
+      roleType: _selectedRoleType ?? '',
+      description: _descriptionController.text.trim(),
+      skills: _selectedSkills.toList(),
+      duration: _selectedDuration ?? '',
+      compensation: _selectedCompensation ?? '',
+      currency: _selectedCurrency,
+      salary: _salaryController.text.trim(),
+      locationType: _locationType == LocationType.remote ? 'remote' : 'inPerson',
+      address: _addressController.text.trim(),
+    );
+    widget.onPosted?.call();
+  }
+
+  bool _validate() {
+    if (!_formkey.currentState!.validate()) return false;
+    if (_selectedRoleType == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a role type')),
+      );
+      return false;
+    }
+    return true;
+  }
+
+  void _openPreview() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OpportunityPreviewScreen(
+          startupName: _startupName,
+          isVerified: _isVerified,
+          title: _titleController.text.trim(),
+          roleType: _selectedRoleType,
+          description: _descriptionController.text.trim(),
+          skills: _selectedSkills,
+          duration: _selectedDuration,
+          compensation: _selectedCompensation,
+          currency: _selectedCurrency,
+          salary: _salaryController.text.trim(),
+          locationType:
+              _locationType == LocationType.remote ? 'remote' : 'inPerson',
+          address: _addressController.text.trim(),
+          onPost: _post,
+        ),
+      ),
+    );
   }
 
   Widget _buildLocationChip(String label, LocationType type) {
@@ -82,88 +160,91 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     "Role Title",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _titleController,
+                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: "e.g. Marketing Intern",
                       filled: true,
-                      fillColor: Color(0xFFF0F4FF),
+                      fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Role title is required'
-                        : null,
+                    validator: (value) =>
+                        value == null || value.trim().isEmpty
+                            ? 'Role title is required'
+                            : null,
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     "Role Type",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   DomainSelector(
                     domains: roleTypes,
                     onChanged: (value) =>
                         setState(() => _selectedRoleType = value),
                   ),
-                  SizedBox(height: 16),
-                  Text(
+                  const SizedBox(height: 16),
+                  const Text(
                     "Description",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   TextFormField(
                     controller: _descriptionController,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText: "Describe the role and responsabilities",
+                      hintText: "Describe the role and responsibilities",
                       filled: true,
-                      fillColor: Color(0xFFF0F4FF),
+                      fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'Description is required'
-                        : null,
+                    validator: (value) =>
+                        value == null || value.trim().isEmpty
+                            ? 'Description is required'
+                            : null,
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   SkillsSelector(
                     skills: opportunitySkills,
                     onChanged: (selected) =>
                         setState(() => _selectedSkills = selected),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               "Duration",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               initialValue: _selectedDuration,
                               onChanged: (value) =>
                                   setState(() => _selectedDuration = value),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: Color(0xFFF0F4FF),
+                                fillColor: const Color(0xFFF0F4FF),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
@@ -181,26 +262,26 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                           ],
                         ),
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               "Compensation",
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
                               initialValue: _selectedCompensation,
                               onChanged: (value) =>
                                   setState(() => _selectedCompensation = value),
                               decoration: InputDecoration(
                                 filled: true,
-                                fillColor: Color(0xFFF0F4FF),
+                                fillColor: const Color(0xFFF0F4FF),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(12),
                                   borderSide: BorderSide.none,
@@ -222,7 +303,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Expected Salary (FrW) — Optional",
+                    "Expected Salary — Optional",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
@@ -232,7 +313,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                     decoration: InputDecoration(
                       hintText: "e.g. 50000",
                       filled: true,
-                      fillColor: Color(0xFFF0F4FF),
+                      fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
@@ -302,50 +383,10 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.blue,
-                          child: const Text(
-                            "T",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "TechBridge Africa",
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              _titleController.text.isEmpty
-                                  ? "Role title will appear here"
-                                  : _titleController.text,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  OpportunityPreviewCard(
+                    startupName: _startupName,
+                    titleController: _titleController,
+                    onTap: _openPreview,
                   ),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -354,67 +395,50 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                       onPressed: _isLoading
                           ? null
                           : () async {
-                              if (!_formkey.currentState!.validate()) return;
-                              if (_selectedRoleType == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please select a role type'),
-                                  ),
-                                );
-                                return;
-                              }
+                              if (!_validate()) return;
                               setState(() => _isLoading = true);
                               final messenger = ScaffoldMessenger.of(context);
                               try {
-                                final uid =
-                                    FirebaseAuth.instance.currentUser!.uid;
-                                await OpportunityRepository().postOpportunity(
-                                  startupUid: uid,
-                                  title: _titleController.text.trim(),
-                                  roleType: _selectedRoleType!,
-                                  description: _descriptionController.text,
-                                  skills: _selectedSkills.toList(),
-                                  duration: _selectedDuration ?? '',
-                                  compensation: _selectedCompensation ?? '',
-                                  currency: _selectedCurrency,
-                                  salary: _salaryController.text.trim(),
-                                  locationType:
-                                      _locationType == LocationType.remote
-                                      ? 'remote'
-                                      : 'inPerson',
-                                  address: _addressController.text.trim(),
-                                );
+                                await _post();
                                 messenger.showSnackBar(
                                   const SnackBar(
                                     content: Text('Opportunity Posted!'),
                                   ),
                                 );
-                                if (context.mounted) widget.onPosted?.call();
-                              } catch (error) {
+                              } catch (e) {
                                 messenger.showSnackBar(
-                                  SnackBar(content: Text(error.toString())),
+                                  SnackBar(content: Text(e.toString())),
                                 );
-                                setState(() => _isLoading = false);
+                                if (mounted) setState(() => _isLoading = false);
                               }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: Text(
-                        "Post Opportunity",
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Post Opportunity",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

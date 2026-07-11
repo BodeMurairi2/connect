@@ -12,12 +12,27 @@ class StartupHomeScreen extends StatefulWidget {
 
 class _StartupHomeScreenState extends State<StartupHomeScreen> {
   int _currentIndex = 0;
+  final _refreshSignal = ValueNotifier<int>(0);
 
   late final List<Widget> _screens = [
-    StartupDashboardScreen(onNewOpportunity: () => setState(() => _currentIndex = 1)),
-    PostOpportunityScreen(onPosted: () => setState(() => _currentIndex = 0)),
+    StartupDashboardScreen(
+      refreshSignal: _refreshSignal,
+      onNewOpportunity: () => setState(() => _currentIndex = 1),
+    ),
+    PostOpportunityScreen(
+      onPosted: () {
+        _refreshSignal.value++;
+        setState(() => _currentIndex = 0);
+      },
+    ),
     const ApplicantsScreen(),
   ];
+
+  @override
+  void dispose() {
+    _refreshSignal.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

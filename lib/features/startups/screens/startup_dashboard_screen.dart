@@ -4,7 +4,12 @@ import 'package:connect/repositories/startup_repository.dart';
 
 class StartupDashboardScreen extends StatefulWidget {
   final VoidCallback? onNewOpportunity;
-  const StartupDashboardScreen({super.key, this.onNewOpportunity});
+  final ValueNotifier<int>? refreshSignal;
+  const StartupDashboardScreen({
+    super.key,
+    this.onNewOpportunity,
+    this.refreshSignal,
+  });
 
   @override
   State<StartupDashboardScreen> createState() => _StartupDashboardScreenState();
@@ -19,6 +24,13 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
+    widget.refreshSignal?.addListener(_loadData);
+  }
+
+  @override
+  void dispose() {
+    widget.refreshSignal?.removeListener(_loadData);
+    super.dispose();
   }
 
   Future<void> _loadData() async {
