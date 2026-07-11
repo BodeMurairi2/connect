@@ -1,8 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connect/repositories/auth_repository.dart';
+import 'package:connect/repositories/startup_repository.dart';
 
 class LoginForm extends StatefulWidget {
-  final VoidCallback onSuccess;
-  const LoginForm({super.key, required this.onSuccess});
+  final Function(String destination) onSuccess;
+  final String role;
+  const LoginForm({super.key, required this.onSuccess, required this.role});
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -13,6 +18,7 @@ class _LoginFormState extends State<LoginForm> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
   static const _labelStyle = TextStyle(
@@ -86,7 +92,8 @@ class _LoginFormState extends State<LoginForm> {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
                 }
-                if (!value.trim().toLowerCase().endsWith('@alustudent.com')) {
+                if (widget.role == 'student' &&
+                    !value.trim().toLowerCase().endsWith('@alustudent.com')) {
                   return "Must be a valid ALU email";
                 }
                 return null;
@@ -125,7 +132,57 @@ class _LoginFormState extends State<LoginForm> {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
-                onPressed: () {},
+                onPressed: () async {
+                  final emailController = TextEditingController();
+                  await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Reset Password'),
+                      content: TextField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter your ALU email',
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            Navigator.pop(context);
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await _authRepository.resetPassword(
+                                emailController.text.trim(),
+                              );
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Password reset email sent!'),
+                                ),
+                              );
+                            } on FirebaseAuthException catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    error.message ??
+                                        'Failed to send reset email',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text(
+                            'Send',
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
                 child: const Text("Forgot password?"),
               ),
             ),
@@ -134,9 +191,40 @@ class _LoginFormState extends State<LoginForm> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formkey.currentState!.validate()) {
-                    widget.onSuccess();
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final credential = await _authRepository.signInWithEmail(
+                        _emailController.text.trim(),
+                        _passwordController.text,
+                      );
+                      final uid = credential.user!.uid;
+                      final adminCheck = await _authRepository.isAdmin(uid);
+
+                      // get now role from firestore
+                      final userDoc = await FirebaseFirestore.instance
+                          .collection('Users')
+                          .doc(uid)
+                          .get();
+                      final role =
+                          userDoc.data()?['role'] as String? ?? 'student';
+
+                      if (adminCheck) {
+                        widget.onSuccess('admin');
+                      } else if (role == 'startup') {
+                        final hasProfile = await StartupRepository().hasCompletedOnboarding(uid);
+                        widget.onSuccess(hasProfile ? 'startup' : 'onboarding/startup');
+                      } else {
+                        widget.onSuccess(role);
+                      }
+                    } on FirebaseAuthException catch (error) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(error.message ?? 'Login Failed'),
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(

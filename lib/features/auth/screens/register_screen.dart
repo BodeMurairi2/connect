@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:connect/features/auth/components/register_form.dart';
-import 'package:connect/features/auth/screens/login_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:connect/features/auth/components/register_form.dart';
+import 'package:connect/repositories/auth_repository.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,13 +13,17 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
+    final role = GoRouterState.of(context).extra as String? ?? 'student';
     return SafeArea(
       child: Scaffold(
         body: SingleChildScrollView(
           child: Center(
             child: Column(
               children: [
-                RegisterForm(),
+                RegisterForm(
+                  onSuccess: () => context.go('/login', extra: role),
+                  role: role,
+                ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
@@ -41,7 +45,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              final credential = await AuthService().signInWithGoogle();
+                              if (credential.user != null) {
+                                await AuthService().saveUserToFirestore(
+                                  uid: credential.user!.uid,
+                                  firstName: credential.user!.displayName?.split(' ').first ?? '',
+                                  lastName: credential.user!.displayName?.split(' ').last ?? '',
+                                  email: credential.user!.email ?? '',
+                                  role: role,
+                                );
+                                if (context.mounted) {
+                                  context.go(
+                                    role == 'startup'
+                                        ? '/onboarding/startup'
+                                        : '/onboarding/student',
+                                  );
+                                }
+                              }
+                            } catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(

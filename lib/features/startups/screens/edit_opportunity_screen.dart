@@ -1,55 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connect/features/startups/components/domain_selector.dart';
-import 'package:connect/features/startups/components/opportunity_preview_card.dart';
-import 'package:connect/features/startups/screens/opportunity_preview_screen.dart';
 import 'package:connect/features/onboarding/components/skills_selector.dart';
 import 'package:connect/features/startups/data/post_opportunity.dart';
 import 'package:connect/repositories/opportunity_repository.dart';
-import 'package:connect/repositories/startup_repository.dart';
 
-class PostOpportunityScreen extends StatefulWidget {
-  final VoidCallback? onPosted;
-  const PostOpportunityScreen({super.key, this.onPosted});
+class EditOpportunityScreen extends StatefulWidget {
+  final Map<String, dynamic> opportunity;
+  const EditOpportunityScreen({super.key, required this.opportunity});
 
   @override
-  State<PostOpportunityScreen> createState() => _PostOpportunityScreenState();
+  State<EditOpportunityScreen> createState() => _EditOpportunityScreenState();
 }
 
-class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
-  final GlobalKey<FormState> _formkey = GlobalKey<FormState>();
+class _EditOpportunityScreenState extends State<EditOpportunityScreen> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  String _startupName = '';
-  bool _isVerified = false;
 
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _salaryController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _salaryController;
+  late final TextEditingController _addressController;
+
   String? _selectedRoleType;
   Set<String> _selectedSkills = {};
   String? _selectedDuration;
   String? _selectedCompensation;
   LocationType? _locationType;
-  final TextEditingController _addressController = TextEditingController();
   String _selectedCurrency = 'FrW';
+  late bool _isOpen;
 
   @override
   void initState() {
     super.initState();
-    _loadStartupProfile();
-  }
-
-  Future<void> _loadStartupProfile() async {
-    try {
-      final uid = FirebaseAuth.instance.currentUser!.uid;
-      final profile = await StartupRepository().getStartupProfile(uid);
-      if (mounted && profile != null) {
-        setState(() {
-          _startupName = profile['name'] ?? '';
-          _isVerified = profile['isVerified'] == true;
-        });
-      }
-    } catch (_) {}
+    final o = widget.opportunity;
+    _titleController = TextEditingController(text: o['title'] ?? '');
+    _descriptionController = TextEditingController(text: o['description'] ?? '');
+    _salaryController = TextEditingController(text: o['salary'] ?? '');
+    _addressController = TextEditingController(text: o['address'] ?? '');
+    _selectedRoleType = o['roleType'] as String?;
+    _selectedSkills = Set<String>.from(
+      (o['skills'] as List<dynamic>? ?? []).cast<String>(),
+    );
+    _selectedDuration = o['duration'] as String?;
+    _selectedCompensation = o['compensation'] as String?;
+    _selectedCurrency = (o['currency'] as String?) ?? 'FrW';
+    _isOpen = o['isOpen'] as bool? ?? true;
+    final locType = o['locationType'] as String?;
+    _locationType =
+        locType == 'remote' ? LocationType.remote : LocationType.inPerson;
   }
 
   @override
@@ -61,57 +59,40 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
     super.dispose();
   }
 
-  Future<void> _post() async {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    await OpportunityRepository().postOpportunity(
-      startupUid: uid,
-      title: _titleController.text.trim(),
-      roleType: _selectedRoleType ?? '',
-      description: _descriptionController.text.trim(),
-      skills: _selectedSkills.toList(),
-      duration: _selectedDuration ?? '',
-      compensation: _selectedCompensation ?? '',
-      currency: _selectedCurrency,
-      salary: _salaryController.text.trim(),
-      locationType: _locationType == LocationType.remote ? 'remote' : 'inPerson',
-      address: _addressController.text.trim(),
-    );
-    widget.onPosted?.call();
-  }
-
-  bool _validate() {
-    if (!_formkey.currentState!.validate()) return false;
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
     if (_selectedRoleType == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select a role type')),
       );
-      return false;
+      return;
     }
-    return true;
-  }
-
-  void _openPreview() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OpportunityPreviewScreen(
-          startupName: _startupName,
-          isVerified: _isVerified,
-          title: _titleController.text.trim(),
-          roleType: _selectedRoleType,
-          description: _descriptionController.text.trim(),
-          skills: _selectedSkills,
-          duration: _selectedDuration,
-          compensation: _selectedCompensation,
-          currency: _selectedCurrency,
-          salary: _salaryController.text.trim(),
-          locationType:
-              _locationType == LocationType.remote ? 'remote' : 'inPerson',
-          address: _addressController.text.trim(),
-          onPost: _post,
-        ),
-      ),
-    );
+    setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await OpportunityRepository().updateOpportunity(
+        widget.opportunity['id'] as String,
+        title: _titleController.text.trim(),
+        roleType: _selectedRoleType!,
+        description: _descriptionController.text.trim(),
+        skills: _selectedSkills.toList(),
+        duration: _selectedDuration ?? '',
+        compensation: _selectedCompensation ?? '',
+        currency: _selectedCurrency,
+        salary: _salaryController.text.trim(),
+        locationType:
+            _locationType == LocationType.remote ? 'remote' : 'inPerson',
+        address: _addressController.text.trim(),
+        isOpen: _isOpen,
+      );
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Opportunity updated!')),
+      );
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Widget _buildLocationChip(String label, LocationType type) {
@@ -143,7 +124,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Post Opportunity",
+          'Edit Opportunity',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
@@ -156,21 +137,59 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
-              key: _formkey,
+              key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
+                  // Status toggle
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _isOpen
+                          ? const Color(0xFFE8F5E9)
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isOpen ? Icons.lock_open : Icons.lock_outline,
+                          color: _isOpen ? Colors.green : Colors.grey,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _isOpen
+                                ? 'Open — accepting applications'
+                                : 'Closed — not accepting applications',
+                            style: TextStyle(
+                              color: _isOpen ? Colors.green : Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        Switch(
+                          value: _isOpen,
+                          onChanged: (v) => setState(() => _isOpen = v),
+                          activeThumbColor: Colors.green,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
                   const Text(
-                    "Role Title",
+                    'Role Title',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _titleController,
-                    onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: "e.g. Marketing Intern",
                       filled: true,
                       fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
@@ -178,25 +197,25 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty
                             ? 'Role title is required'
                             : null,
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Role Type",
+                    'Role Type',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                   DomainSelector(
                     domains: roleTypes,
-                    onChanged: (value) =>
-                        setState(() => _selectedRoleType = value),
+                    initialValue: _selectedRoleType,
+                    onChanged: (v) => setState(() => _selectedRoleType = v),
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Description",
+                    'Description',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
@@ -204,7 +223,6 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                     controller: _descriptionController,
                     maxLines: 5,
                     decoration: InputDecoration(
-                      hintText: "Describe the role and responsibilities",
                       filled: true,
                       fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
@@ -212,16 +230,16 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
+                    validator: (v) =>
+                        v == null || v.trim().isEmpty
                             ? 'Description is required'
                             : null,
                   ),
                   const SizedBox(height: 16),
                   SkillsSelector(
                     skills: opportunitySkills,
-                    onChanged: (selected) =>
-                        setState(() => _selectedSkills = selected),
+                    initialSelected: _selectedSkills,
+                    onChanged: (s) => setState(() => _selectedSkills = s),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -231,7 +249,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Duration",
+                              'Duration',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -239,9 +257,11 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              initialValue: _selectedDuration,
-                              onChanged: (value) =>
-                                  setState(() => _selectedDuration = value),
+                              initialValue: durations.contains(_selectedDuration)
+                                  ? _selectedDuration
+                                  : null,
+                              onChanged: (v) =>
+                                  setState(() => _selectedDuration = v),
                               decoration: InputDecoration(
                                 filled: true,
                                 fillColor: const Color(0xFFF0F4FF),
@@ -268,7 +288,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              "Compensation",
+                              'Compensation',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
@@ -276,9 +296,11 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                             ),
                             const SizedBox(height: 8),
                             DropdownButtonFormField<String>(
-                              initialValue: _selectedCompensation,
-                              onChanged: (value) =>
-                                  setState(() => _selectedCompensation = value),
+                              initialValue: compensations.contains(_selectedCompensation)
+                                  ? _selectedCompensation
+                                  : null,
+                              onChanged: (v) =>
+                                  setState(() => _selectedCompensation = v),
                               decoration: InputDecoration(
                                 filled: true,
                                 fillColor: const Color(0xFFF0F4FF),
@@ -303,7 +325,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Expected Salary — Optional",
+                    'Expected Salary — Optional',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
@@ -311,7 +333,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                     controller: _salaryController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      hintText: "e.g. 50000",
+                      hintText: 'e.g. 50000',
                       filled: true,
                       fillColor: const Color(0xFFF0F4FF),
                       border: OutlineInputBorder(
@@ -322,8 +344,8 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                         value: _selectedCurrency,
                         underline: const SizedBox(),
                         isDense: true,
-                        onChanged: (value) =>
-                            setState(() => _selectedCurrency = value!),
+                        onChanged: (v) =>
+                            setState(() => _selectedCurrency = v!),
                         items: currencies
                             .map(
                               (c) => DropdownMenuItem(
@@ -343,21 +365,21 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    "Location",
+                    'Location',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildLocationChip("Remote", LocationType.remote),
+                      _buildLocationChip('Remote', LocationType.remote),
                       const SizedBox(width: 8),
-                      _buildLocationChip("In Person", LocationType.inPerson),
+                      _buildLocationChip('In Person', LocationType.inPerson),
                     ],
                   ),
                   if (_locationType == LocationType.inPerson) ...[
                     const SizedBox(height: 16),
                     const Text(
-                      "Startup Address",
+                      'Startup Address',
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -367,7 +389,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                     TextFormField(
                       controller: _addressController,
                       decoration: InputDecoration(
-                        hintText: "e.g. KG 123 St, Kigali",
+                        hintText: 'e.g. KG 123 St, Kigali',
                         filled: true,
                         fillColor: const Color(0xFFF0F4FF),
                         border: OutlineInputBorder(
@@ -377,41 +399,11 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 24),
-                  const Text(
-                    "Preview",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  OpportunityPreviewCard(
-                    startupName: _startupName,
-                    titleController: _titleController,
-                    onTap: _openPreview,
-                  ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                              if (!_validate()) return;
-                              setState(() => _isLoading = true);
-                              final messenger = ScaffoldMessenger.of(context);
-                              try {
-                                await _post();
-                                messenger.showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Opportunity Posted!'),
-                                  ),
-                                );
-                              } catch (e) {
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text(e.toString())),
-                                );
-                                if (mounted) setState(() => _isLoading = false);
-                              }
-                            },
+                      onPressed: _isLoading ? null : _save,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -430,7 +422,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                               ),
                             )
                           : const Text(
-                              "Post Opportunity",
+                              'Save Changes',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

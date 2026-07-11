@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "215153960663",
+    "project_id": "anzaconnect",
+    "storage_bucket": "anzaconnect.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:215153960663:android:5b400ab8bc5ef68d39f292",
+        "android_client_info": {
+          "package_name": "com.example.connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "215153960663-36ibq162vs2aa83rf6atm7qn0os5ocus.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.connect",
+            "certificate_hash": "f0566919de1eef96b1804fb5aa614ccee2eb46cf"
+          }
+        },
+        {
+          "client_id": "215153960663-5btk6jkc5kqj5e6b6eml6idhsuiaf0mq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhad0b3BgwurWxMOb1GA8dCTA3FySqIeU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "215153960663-5btk6jkc5kqj5e6b6eml6idhsuiaf0mq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "215153960663-oap6qdst0ofgg384fq8766vrlildf5i0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.connect"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

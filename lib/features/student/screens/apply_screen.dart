@@ -1,4 +1,7 @@
 import 'package:connect/features/student/data/feed_data.dart';
+import 'package:connect/repositories/application_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ApplyScreen extends StatefulWidget {
@@ -14,7 +17,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
   final List<TextEditingController> _portfolioControllers = [
     TextEditingController(),
   ];
-  String? _cvFileName;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -23,6 +26,63 @@ class _ApplyScreenState extends State<ApplyScreen> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (_applicationController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please write a cover letter')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final userDoc = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(user.uid)
+          .get();
+      final data = userDoc.data();
+      final studentName = data != null
+          ? '${data['firstName'] ?? ''} ${data['lastName'] ?? ''}'.trim()
+          : user.displayName ?? '';
+
+      final portfolioLinks = _portfolioControllers
+          .map((c) => c.text.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      await ApplicationRepository().submitApplication(
+        studentUid: user.uid,
+        studentName:
+            studentName.isEmpty ? (user.email ?? 'Unknown') : studentName,
+        studentEmail: user.email ?? '',
+        opportunityId: widget.opportunity.opportunityId,
+        opportunityTitle: widget.opportunity.role,
+        startupUid: widget.opportunity.startupUid,
+        coverLetter: _applicationController.text.trim(),
+        portfolioLinks: portfolioLinks,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Application submitted!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to submit: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -90,101 +150,47 @@ class _ApplyScreenState extends State<ApplyScreen> {
                 ],
               ),
             ),
-            SizedBox(height: 24),
-            Text(
-              'Your Profile',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
+            if (widget.opportunity.matchedSkills.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Matching Skills:',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                ),
               ),
-            ),
-            SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Color(0xFFE2E8F0)),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: Colors.purple,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    alignment: Alignment.center,
-                    child: const Text(
-                      'B',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 17,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bode Murairi',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: widget.opportunity.matchedSkills
+                    .map(
+                      (skill) => Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.blue.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          skill,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue,
+                          ),
                         ),
                       ),
-                      Text(
-                        'Year 3 - ML - 4 skills',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ],
+                    )
+                    .toList(),
               ),
-            ),
-            SizedBox(height: 24),
-            Text(
-              'Matching Skills:',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: widget.opportunity.matchedSkills
-                  .map(
-                    (skill) => Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 7,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.blue.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      child: Text(
-                        skill,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList(),
-            ),
+            ],
             const SizedBox(height: 24),
             RichText(
               text: const TextSpan(
@@ -219,50 +225,6 @@ class _ApplyScreenState extends State<ApplyScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            // CV Upload
-            const Text(
-              'CV / Resume',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () {},
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                    width: 1.5,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.upload_file,
-                      size: 28,
-                      color: _cvFileName != null ? Colors.blue : Colors.grey,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      _cvFileName ?? 'Upload CV (PDF)',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: _cvFileName != null ? Colors.blue : Colors.grey,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Portfolio links
             const Text(
               'Portfolio / Project Links',
               style: TextStyle(
@@ -348,7 +310,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
@@ -357,10 +319,22 @@ class _ApplyScreenState extends State<ApplyScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                 ),
-                child: const Text(
-                  'Submit Application',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Submit Application',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 20),

@@ -1,4 +1,68 @@
-// Firestore reads/writes for applications/{appId}
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ApplicationRepository {}
+class ApplicationRepository {
+  final _firestore = FirebaseFirestore.instance;
 
+  Future<void> submitApplication({
+    required String studentUid,
+    required String studentName,
+    required String studentEmail,
+    required String opportunityId,
+    required String opportunityTitle,
+    required String startupUid,
+    required String coverLetter,
+    required List<String> portfolioLinks,
+  }) async {
+    final batch = _firestore.batch();
+
+    final appRef = _firestore.collection('Applications').doc();
+    batch.set(appRef, {
+      'studentUid': studentUid,
+      'studentName': studentName,
+      'studentEmail': studentEmail,
+      'opportunityId': opportunityId,
+      'opportunityTitle': opportunityTitle,
+      'startupUid': startupUid,
+      'coverLetter': coverLetter,
+      'portfolioLinks': portfolioLinks,
+      'status': 'Pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    if (opportunityId.isNotEmpty) {
+      final oppRef = _firestore.collection('Opportunities').doc(opportunityId);
+      batch.update(oppRef, {'applicantsCount': FieldValue.increment(1)});
+    }
+
+    await batch.commit();
+  }
+
+  Future<List<Map<String, dynamic>>> getApplicationsForStartup(
+    String startupUid,
+  ) async {
+    final snapshot = await _firestore
+        .collection('Applications')
+        .where('startupUid', isEqualTo: startupUid)
+        .get();
+    final docs = snapshot.docs
+        .map((doc) => {'id': doc.id, ...doc.data()})
+        .toList();
+    docs.sort((a, b) {
+      final aTime = a['createdAt'];
+      final bTime = b['createdAt'];
+      if (aTime == null || bTime == null) return 0;
+      return bTime.compareTo(aTime);
+    });
+    return docs;
+  }
+
+  Future<void> updateApplicationStatus(
+    String applicationId,
+    String status,
+  ) async {
+    await _firestore
+        .collection('Applications')
+        .doc(applicationId)
+        .update({'status': status});
+  }
+}

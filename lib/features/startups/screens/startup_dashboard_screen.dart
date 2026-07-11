@@ -1,14 +1,60 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:connect/features/startups/data/applications_data.dart';
+import 'package:connect/features/startups/components/startup_profile_sheet.dart';
+import 'package:connect/features/startups/screens/edit_opportunity_screen.dart';
+import 'package:connect/repositories/startup_repository.dart';
 
 class StartupDashboardScreen extends StatefulWidget {
-  const StartupDashboardScreen({super.key});
+  final VoidCallback? onNewOpportunity;
+  final ValueNotifier<int>? refreshSignal;
+  const StartupDashboardScreen({
+    super.key,
+    this.onNewOpportunity,
+    this.refreshSignal,
+  });
 
   @override
   State<StartupDashboardScreen> createState() => _StartupDashboardScreenState();
 }
 
 class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
+  Map<String, dynamic>? _startup;
+  List<Map<String, dynamic>> _opportunities = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    widget.refreshSignal?.addListener(_loadData);
+  }
+
+  @override
+  void dispose() {
+    widget.refreshSignal?.removeListener(_loadData);
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+      final repo = StartupRepository();
+      final results = await Future.wait([
+        repo.getStartupProfile(uid),
+        repo.getStartupOpportunities(uid),
+      ]);
+      if (mounted) {
+        setState(() {
+          _startup = results[0] as Map<String, dynamic>?;
+          _opportunities = (results[1] as List).cast<Map<String, dynamic>>();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Widget _buildStatCard(String count, String label, Color color) {
     return Container(
       decoration: BoxDecoration(
@@ -20,44 +66,33 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
         children: [
           Text(
             count,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 28,
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 4),
-          Text(label, style: TextStyle(color: Colors.white, fontSize: 12)),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontSize: 12),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildStatusBadge(String status) {
-    final colors = {
-      'Pending': (bg: Color(0xFFFFF8E1), text: Color(0xFFE65100)),
-      'Reviewing': (bg: Color(0xFFE3F2FD), text: Colors.blue),
-      'Accepted': (bg: Color(0xFFE8F5E9), text: Colors.green),
-    };
-    final c = colors[status] ?? (bg: Colors.grey.shade100, text: Colors.grey);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: c.bg,
-        borderRadius: BorderRadius.circular(20),
+  void _openEditScreen(Map<String, dynamic> opportunity) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditOpportunityScreen(opportunity: opportunity),
       ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: c.text,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-        ),
-      ),
-    );
+    ).then((_) => _loadData());
   }
 
-  Widget _buildApplicantCard(Applicant applicant) {
+  Widget _buildOpportunityCard(Map<String, dynamic> opportunity) {
+    final isOpen = opportunity['isOpen'] == true;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       padding: const EdgeInsets.all(16),
@@ -68,87 +103,59 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: applicant.avatarColor,
-            child: Text(
-              applicant.firstName[0],
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  opportunity['title'] ?? '',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${opportunity['applicantsCount'] ?? 0} applicants · ${opportunity['roleType'] ?? ''}',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => _openEditScreen(opportunity),
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F4FF),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '${applicant.firstName} ${applicant.lastName}',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  applicant.role,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
-            ),
-          ),
-          _buildStatusBadge(applicant.status),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildOpportunityCard(Opportunity opportunity) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  opportunity.title,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  opportunity.meta,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              ],
+              child: const Icon(
+                Icons.edit_outlined,
+                size: 16,
+                color: Colors.blue,
+              ),
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
-              color: Color(0xFFE8F5E9),
+              color: isOpen
+                  ? const Color(0xFFE8F5E9)
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              "Open",
+              isOpen ? 'Open' : 'Closed',
               style: TextStyle(
-                color: Colors.green,
+                color: isOpen ? Colors.green : Colors.grey,
                 fontWeight: FontWeight.bold,
                 fontSize: 12,
               ),
@@ -161,135 +168,168 @@ class _StartupDashboardScreenState extends State<StartupDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isVerified = _startup?['isVerified'] == true;
+    final startupName = _startup?['name'] ?? 'Your Startup';
+    final firstLetter = startupName.isNotEmpty
+        ? startupName[0].toUpperCase()
+        : 'S';
+
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            backgroundColor: Colors.white,
-            elevation: 0,
-            pinned: true,
-            toolbarHeight: 60,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Your startup',
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                Text(
-                  "TechBridge Africa",
-                  style: TextStyle(
-                    color: Color(0xFF1E1E2D),
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  pinned: true,
+                  toolbarHeight: 60,
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Your startup',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      Text(
+                        startupName,
+                        style: const TextStyle(
+                          color: Color(0xFF1E1E2D),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            actions: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "Verified",
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-              SizedBox(width: 8),
-              CircleAvatar(
-                backgroundColor: Colors.blue,
-                child: Text(
-                  "T",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(width: 16),
-            ],
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 8,
-                childAspectRatio: 1.2,
-              ),
-              delegate: SliverChildListDelegate([
-                _buildStatCard("5", "Active Roles", Colors.blue),
-                _buildStatCard("23", "Applicants", Colors.purple),
-                _buildStatCard("4", "Hired", Colors.green),
-              ]),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-              child: Row(
-                children: [
-                  Text(
-                    "Recent Applicants",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Spacer(),
-                  TextButton(onPressed: () {}, child: Text("View all")),
-                ],
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildApplicantCard(applicants[index]),
-              childCount: applicants.length,
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
-                  Text(
-                    "Your Opportunities",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  Spacer(),
-                  ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
+                  actions: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isVerified
+                            ? const Color(0xFFE8F5E9)
+                            : const Color(0xFFFFF8E1),
                         borderRadius: BorderRadius.circular(20),
                       ),
+                      child: Text(
+                        isVerified ? 'Verified' : 'Pending',
+                        style: TextStyle(
+                          color: isVerified
+                              ? Colors.green
+                              : const Color(0xFFE65100),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
                     ),
-                    child: Text("New"),
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: () => StartupProfileSheet.show(
+                        context,
+                        name: startupName,
+                        email: FirebaseAuth.instance.currentUser?.email ?? '',
+                      ),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(
+                          firstLetter,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                ),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
+                          childAspectRatio: 1.2,
+                        ),
+                    delegate: SliverChildListDelegate([
+                      _buildStatCard(
+                        _opportunities
+                            .where((o) => o['isOpen'] == true)
+                            .length
+                            .toString(),
+                        'Active Roles',
+                        Colors.blue,
+                      ),
+                      _buildStatCard(
+                        _opportunities
+                            .fold<int>(
+                              0,
+                              (sum, o) =>
+                                  sum + ((o['applicantsCount'] ?? 0) as int),
+                            )
+                            .toString(),
+                        'Applicants',
+                        Colors.purple,
+                      ),
+                      _buildStatCard('0', 'Hired', Colors.green),
+                    ]),
                   ),
-                ],
-              ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                    child: Row(
+                      children: [
+                        const Text(
+                          'Your Opportunities',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Spacer(),
+                        ElevatedButton(
+                          onPressed: widget.onNewOpportunity,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: const Text('New'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                _opportunities.isEmpty
+                    ? SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text(
+                              'No opportunities posted yet.\nTap "New" to post your first one.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey[500]),
+                            ),
+                          ),
+                        ),
+                      )
+                    : SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) =>
+                              _buildOpportunityCard(_opportunities[index]),
+                          childCount: _opportunities.length,
+                        ),
+                      ),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
             ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => _buildOpportunityCard(opportunities[index]),
-              childCount: opportunities.length,
-            ),
-          ),
-          SliverToBoxAdapter(child: SizedBox(height: 24)),
-        ],
-      ),
     );
   }
 }

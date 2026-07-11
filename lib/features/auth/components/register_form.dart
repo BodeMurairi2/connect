@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connect/repositories/auth_repository.dart';
 
 class RegisterForm extends StatefulWidget {
-  const RegisterForm({super.key});
+  final VoidCallback onSuccess;
+  final String role;
+
+  const RegisterForm({super.key, required this.onSuccess, required this.role});
 
   @override
   State<RegisterForm> createState() => _RegisterFormState();
@@ -17,6 +22,7 @@ class _RegisterFormState extends State<RegisterForm> {
       TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
   static const _labelStyle = TextStyle(
@@ -125,14 +131,18 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 16),
 
-            // create the email field. only ALU email is valid email for registration.
-            const Text("ALU Email", style: _labelStyle),
+            Text(
+              widget.role == 'student' ? "ALU Email" : "Email",
+              style: _labelStyle,
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                hintText: "you@alustudent.com",
+                hintText: widget.role == 'student'
+                    ? "you@alustudent.com"
+                    : "you@example.com",
                 filled: true,
                 fillColor: _fieldFill,
                 border: _fieldBorder,
@@ -141,8 +151,8 @@ class _RegisterFormState extends State<RegisterForm> {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
                 }
-                // validate only @alustudent.com or alueducation.com
-                if (!value.trim().toLowerCase().endsWith('@alustudent.com')) {
+                if (widget.role == 'student' &&
+                    !value.trim().toLowerCase().endsWith('@alustudent.com')) {
                   return "Must be a valid ALU email";
                 }
                 return null;
@@ -214,9 +224,31 @@ class _RegisterFormState extends State<RegisterForm> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formkey.currentState!.validate()) {
-                    // auth wired in later
+                    final messenger = ScaffoldMessenger.of(context);
+                    try {
+                      final credential = await _authRepository
+                          .registerWithEmail(
+                            _emailController.text.trim(),
+                            _passwordController.text,
+                          );
+                      await _authRepository.saveUserToFirestore(
+                        uid: credential.user!.uid,
+                        firstName: _firstNameController.text.trim(),
+                        lastName: _lastNameController.text.trim(),
+                        email: _emailController.text.trim(),
+                        role: widget.role,
+                      );
+                      await _authRepository.sendEmailVerification();
+                      widget.onSuccess();
+                    } on FirebaseAuthException catch (error) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(error.message ?? 'Registration failed'),
+                        ),
+                      );
+                    }
                   }
                 },
                 style: ElevatedButton.styleFrom(
