@@ -1,3 +1,4 @@
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -42,6 +43,28 @@ class AuthService {
 
   Future<void> sendEmailVerification() async {
     await _auth.currentUser!.sendEmailVerification();
+  }
+
+  Future<UserCredential> signInWithGoogle() async {
+    final googleSignIn = GoogleSignIn();
+    await googleSignIn.signOut();
+    final googleUser = await googleSignIn.signIn();
+    final googleAuth = await googleUser!.authentication;
+    final oauthCredential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    return await _auth.signInWithCredential(oauthCredential);
+  }
+
+  Future<void> resetPassword(String email) async {
+    await _auth.sendPasswordResetEmail(email: email);
+  }
+
+  Future<bool> isAdmin(String uid) async {
+    final doc = await _firestore.collection('admins').doc(uid).get();
+    return doc.exists;
   }
 
   Future<void> signOut() async => await _auth.signOut();

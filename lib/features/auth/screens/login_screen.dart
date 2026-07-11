@@ -1,3 +1,5 @@
+import 'package:connect/repositories/auth_repository.dart';
+import 'package:connect/repositories/startup_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:connect/features/auth/components/login_form.dart';
@@ -16,8 +18,8 @@ class Login extends StatelessWidget {
             child: Column(
               children: [
                 LoginForm(
-                  onSuccess: () =>
-                      context.go(role == 'student' ? '/student' : '/startup'),
+                  role: role,
+                  onSuccess: (destination) => context.go('/$destination'),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -40,7 +42,27 @@ class Login extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () {},
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              final credential = await AuthService().signInWithGoogle();
+                              final uid = credential.user?.uid;
+                              if (uid != null && context.mounted) {
+                                if (role == 'startup') {
+                                  final hasProfile = await StartupRepository().hasCompletedOnboarding(uid);
+                                  if (context.mounted) {
+                                    context.go(hasProfile ? '/startup' : '/onboarding/startup');
+                                  }
+                                } else {
+                                  context.go('/student');
+                                }
+                              }
+                            } catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(

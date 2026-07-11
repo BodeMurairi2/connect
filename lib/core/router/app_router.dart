@@ -9,6 +9,7 @@ import 'package:connect/features/student/screens/opportunity_detail_screen.dart'
 import 'package:connect/features/student/screens/apply_screen.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/features/startups/screens/startup_home_screen.dart';
+import 'package:connect/features/admin/screens/admin_dashboard_screen.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/role-selection',
@@ -52,6 +53,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/startup',
       builder: (context, state) => const StartupHomeScreen(),
+    ),
+    GoRoute(
+      path: '/admin',
+      builder: (context, state) => const AdminDashboardScreen(),
     ),
   ],
 );

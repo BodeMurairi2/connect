@@ -131,14 +131,18 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 16),
 
-            // create the email field. only ALU email is valid email for registration.
-            const Text("ALU Email", style: _labelStyle),
+            Text(
+              widget.role == 'student' ? "ALU Email" : "Email",
+              style: _labelStyle,
+            ),
             const SizedBox(height: 8),
             TextFormField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                hintText: "you@alustudent.com",
+                hintText: widget.role == 'student'
+                    ? "you@alustudent.com"
+                    : "you@example.com",
                 filled: true,
                 fillColor: _fieldFill,
                 border: _fieldBorder,
@@ -147,8 +151,8 @@ class _RegisterFormState extends State<RegisterForm> {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
                 }
-                // validate only @alustudent.com or alueducation.com
-                if (!value.trim().toLowerCase().endsWith('@alustudent.com')) {
+                if (widget.role == 'student' &&
+                    !value.trim().toLowerCase().endsWith('@alustudent.com')) {
                   return "Must be a valid ALU email";
                 }
                 return null;
