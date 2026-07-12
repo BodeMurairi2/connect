@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 
@@ -11,8 +12,24 @@ class R2StorageService {
   static const _publicUrl = String.fromEnvironment('R2_PUBLIC_URL');
   static const _region = 'auto';
 
+  Future<String> uploadBytes({
+    required Uint8List bytes,
+    required String objectKey,
+    required String fileName,
+  }) async {
+    return _upload(bytes: bytes, objectKey: objectKey, contentType: _contentType(fileName));
+  }
+
   Future<String> uploadFile(File file, String objectKey) async {
     final bytes = await file.readAsBytes();
+    return _upload(bytes: bytes, objectKey: objectKey, contentType: _contentType(file.path));
+  }
+
+  Future<String> _upload({
+    required Uint8List bytes,
+    required String objectKey,
+    required String contentType,
+  }) async {
     final now = DateTime.now().toUtc();
     final dateStr = _formatDate(now);
     final datetimeStr = _formatDatetime(now);
@@ -47,7 +64,7 @@ class R2StorageService {
         'Authorization': authorization,
         'x-amz-date': datetimeStr,
         'x-amz-content-sha256': payloadHash,
-        'Content-Type': _contentType(file.path),
+        'Content-Type': contentType,
         'Content-Length': bytes.length.toString(),
       },
       body: bytes,
