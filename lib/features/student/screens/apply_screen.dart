@@ -1,6 +1,7 @@
 import 'package:connect/features/student/components/document_upload_button.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/notification_repository.dart';
 import 'package:connect/repositories/storage_repository.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -28,6 +29,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: ['pdf', 'docx'],
+      withData: true,
     );
     if (result != null && mounted) {
       setState(() {
@@ -50,6 +52,16 @@ class _ApplyScreenState extends State<ApplyScreen> {
   }
 
   Future<void> _submit() async {
+    if (widget.opportunity.deadline != null &&
+        DateTime.now().isAfter(widget.opportunity.deadline!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The application deadline for this opportunity has passed'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
     final coverLetterText = _applicationController.text.trim();
     if (coverLetterText.isEmpty && _coverLetterFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -101,17 +113,28 @@ class _ApplyScreenState extends State<ApplyScreen> {
           .where((s) => s.isNotEmpty)
           .toList();
 
+      final resolvedName =
+          studentName.isEmpty ? (user.email ?? 'Unknown') : studentName;
       await ApplicationRepository().submitApplication(
         studentUid: user.uid,
-        studentName: studentName.isEmpty ? (user.email ?? 'Unknown') : studentName,
+        studentName: resolvedName,
         studentEmail: user.email ?? '',
         opportunityId: widget.opportunity.opportunityId,
         opportunityTitle: widget.opportunity.role,
         startupUid: widget.opportunity.startupUid,
+        startupName: widget.opportunity.startupName,
         coverLetter: coverLetterText,
         portfolioLinks: portfolioLinks,
         cvUrl: cvUrl,
         coverLetterFileUrl: coverLetterFileUrl,
+      );
+
+      // Fire-and-forget confirmation email — non-blocking
+      NotificationRepository().sendApplicationConfirmation(
+        studentEmail: user.email ?? '',
+        studentName: resolvedName,
+        opportunityTitle: widget.opportunity.role,
+        startupName: widget.opportunity.startupName,
       );
 
       if (mounted) {

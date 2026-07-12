@@ -16,6 +16,9 @@ class OpportunityRepository {
     required String salary,
     required String locationType,
     required String address,
+    DateTime? deadline,
+    String contactEmail = '',
+    String contactPhone = '',
   }) async {
     await _firestore.collection('Opportunities').add({
       'startupUid': startupUid,
@@ -32,7 +35,10 @@ class OpportunityRepository {
       'address': address,
       'applicantsCount': 0,
       'isOpen': true,
+      'contactEmail': contactEmail,
+      'contactPhone': contactPhone,
       'createdAt': FieldValue.serverTimestamp(),
+      if (deadline != null) 'deadline': Timestamp.fromDate(deadline),
     });
   }
 
@@ -63,6 +69,12 @@ class OpportunityRepository {
       'address': address,
       'isOpen': isOpen,
     });
+  }
+
+  Future<Map<String, dynamic>?> getOpportunityById(String id) async {
+    final doc = await _firestore.collection('Opportunities').doc(id).get();
+    if (!doc.exists) return null;
+    return {'id': doc.id, ...doc.data()!};
   }
 
   Future<List<Map<String, dynamic>>> getOpportunities() async {
