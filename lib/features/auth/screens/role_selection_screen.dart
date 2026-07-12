@@ -222,6 +222,13 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                   ),
                 ),
                 SizedBox(height: 24),
+                Center(
+                  child: TextButton(
+                    onPressed: () => context.go('/login', extra: 'admin'),
+                    child: const Text('Login as Admin'),
+                  ),
+                ),
+                SizedBox(height: 8),
               ],
             ),
           ),
