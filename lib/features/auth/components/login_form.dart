@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connect/repositories/auth_repository.dart';
 import 'package:connect/repositories/startup_repository.dart';
+import 'package:connect/repositories/student_repository.dart';
 
 class LoginForm extends StatefulWidget {
   final Function(String destination) onSuccess;
@@ -215,6 +216,9 @@ class _LoginFormState extends State<LoginForm> {
                       } else if (role == 'startup') {
                         final hasProfile = await StartupRepository().hasCompletedOnboarding(uid);
                         widget.onSuccess(hasProfile ? 'startup' : 'onboarding/startup');
+                      } else if (role == 'student') {
+                        final hasProfile = await StudentRepository().hasCompletedOnboarding(uid);
+                        widget.onSuccess(hasProfile ? 'student' : 'onboarding/student');
                       } else {
                         widget.onSuccess(role);
                       }

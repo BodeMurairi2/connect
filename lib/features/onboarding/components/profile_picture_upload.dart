@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 class ProfilePictureUpload extends StatefulWidget {
@@ -13,7 +14,11 @@ class _ProfilePictureUploadState extends State<ProfilePictureUpload> {
   File? _image;
 
   Future<void> _pickImage() async {
-    // TODO: this function wire up image _picker
+    final result = await FilePicker.platform.pickFiles(type: FileType.image);
+    if (result != null && result.files.single.path != null) {
+      setState(() => _image = File(result.files.single.path!));
+      widget.onImageSelected(_image!);
+    }
   }
   @override
   Widget build(BuildContext context) {
