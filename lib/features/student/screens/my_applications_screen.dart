@@ -36,29 +36,17 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
     super.dispose();
   }
 
-  Future<void> _openOpportunity(String opportunityId) async {
+  Future<void> _openOpportunity(Map<String, dynamic> app) async {
+    final opportunityId = app['opportunityId'] as String? ?? '';
     final map = await OpportunityRepository().getOpportunityById(opportunityId);
     if (map == null || !mounted) return;
-    final name = map['startupName'] as String? ?? '';
-    final opportunity = FeedOpportunity(
-      opportunityId: map['id'] as String? ?? '',
-      startupUid: map['startupUid'] as String? ?? '',
-      startupName: name,
-      role: map['title'] as String? ?? '',
-      domain: map['roleType'] as String? ?? '',
-      compensation: map['compensation'] as String? ?? '',
-      duration: map['duration'] as String? ?? '',
-      location: map['locationType'] as String? ?? '',
-      description: map['description'] as String? ?? '',
-      skills: List<String>.from(map['skills'] ?? []),
-      avatarColor: Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
-      isVerified: false,
-      skillsMatch: 0,
-      postedAt: 'recently',
-      matchedSkills: [],
-      responsibilities: [],
-    );
-    if (mounted) context.push('/student/opportunity', extra: opportunity);
+    final opportunity = mapToFeedOpportunity(map);
+    if (mounted) {
+      context.push('/student/opportunity', extra: {
+        'opportunity': opportunity,
+        'applicationData': app,
+      });
+    }
   }
 
   Color _statusColor(String status) {
@@ -114,7 +102,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
               final app = apps[index];
               final status = app['status'] as String? ?? 'Pending';
               return GestureDetector(
-                onTap: () => _openOpportunity(app['opportunityId'] as String? ?? ''),
+                onTap: () => _openOpportunity(app),
                 child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),

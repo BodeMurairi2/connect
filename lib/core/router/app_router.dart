@@ -40,9 +40,17 @@ final GoRouter appRouter = GoRouter(
     ),
     GoRoute(
       path: '/student/opportunity',
-      builder: (context, state) => OpportunityDetailScreen(
-        opportunity: state.extra as FeedOpportunity,
-      ),
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FeedOpportunity) {
+          return OpportunityDetailScreen(opportunity: extra);
+        }
+        final map = extra as Map;
+        return OpportunityDetailScreen(
+          opportunity: map['opportunity'] as FeedOpportunity,
+          applicationData: map['applicationData'] as Map<String, dynamic>?,
+        );
+      },
     ),
     GoRoute(
       path: '/student/opportunity/apply',
