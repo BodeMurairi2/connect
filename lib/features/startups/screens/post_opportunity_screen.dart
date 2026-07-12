@@ -65,6 +65,7 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
     final uid = FirebaseAuth.instance.currentUser!.uid;
     await OpportunityRepository().postOpportunity(
       startupUid: uid,
+      startupName: _startupName,
       title: _titleController.text.trim(),
       roleType: _selectedRoleType ?? '',
       description: _descriptionController.text.trim(),
@@ -73,7 +74,9 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
       compensation: _selectedCompensation ?? '',
       currency: _selectedCurrency,
       salary: _salaryController.text.trim(),
-      locationType: _locationType == LocationType.remote ? 'remote' : 'inPerson',
+      locationType: _locationType == LocationType.remote
+          ? 'remote'
+          : 'inPerson',
       address: _addressController.text.trim(),
     );
     widget.onPosted?.call();
@@ -105,8 +108,9 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
           compensation: _selectedCompensation,
           currency: _selectedCurrency,
           salary: _salaryController.text.trim(),
-          locationType:
-              _locationType == LocationType.remote ? 'remote' : 'inPerson',
+          locationType: _locationType == LocationType.remote
+              ? 'remote'
+              : 'inPerson',
           address: _addressController.text.trim(),
           onPost: _post,
         ),
@@ -178,10 +182,9 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
-                            ? 'Role title is required'
-                            : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Role title is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -212,10 +215,9 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                         borderSide: BorderSide.none,
                       ),
                     ),
-                    validator: (value) =>
-                        value == null || value.trim().isEmpty
-                            ? 'Description is required'
-                            : null,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Description is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
                   SkillsSelector(

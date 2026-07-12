@@ -1,5 +1,6 @@
 import 'package:connect/repositories/auth_repository.dart';
 import 'package:connect/repositories/startup_repository.dart';
+import 'package:connect/repositories/student_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:connect/features/auth/components/login_form.dart';
@@ -54,7 +55,10 @@ class Login extends StatelessWidget {
                                     context.go(hasProfile ? '/startup' : '/onboarding/startup');
                                   }
                                 } else {
-                                  context.go('/student');
+                                  final hasProfile = await StudentRepository().hasCompletedOnboarding(uid);
+                                  if (context.mounted) {
+                                    context.go(hasProfile ? '/student' : '/onboarding/student');
+                                  }
                                 }
                               }
                             } catch (error) {
