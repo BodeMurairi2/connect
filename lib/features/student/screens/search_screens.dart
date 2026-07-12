@@ -1,4 +1,8 @@
+import 'dart:async';
 import 'package:connect/features/student/components/opportunity_card.dart';
+import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/opportunity_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 
@@ -13,20 +17,68 @@ class _SearchScreensState extends State<SearchScreens> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   String _selectedFilter = 'All';
+  List<FeedOpportunity> _allOpportunities = [];
+  Stream<Set<String>> _appliedIdsStream = const Stream.empty();
+  StreamSubscription<User?>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOpportunities();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null && mounted) {
+        setState(() {
+          _appliedIdsStream = ApplicationRepository()
+              .watchAppliedOpportunityIds(user.uid);
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _authSub?.cancel();
     super.dispose();
   }
 
-  List<FeedOpportunity> get _results => feedOpportunities.where((value) {
+  Future<void> _loadOpportunities() async {
+    final data = await OpportunityRepository().getOpportunities();
+    if (mounted) {
+      setState(() {
+        _allOpportunities = data.map(_mapToOpportunity).toList();
+      });
+    }
+  }
+
+  FeedOpportunity _mapToOpportunity(Map<String, dynamic> map) {
+    final name = map['startupName'] as String? ?? '';
+    return FeedOpportunity(
+      opportunityId: map['id'] as String? ?? '',
+      startupUid: map['startupUid'] as String? ?? '',
+      startupName: name,
+      role: map['title'] as String? ?? '',
+      domain: map['roleType'] as String? ?? '',
+      compensation: map['compensation'] as String? ?? '',
+      duration: map['duration'] as String? ?? '',
+      location: map['locationType'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      skills: List<String>.from(map['skills'] ?? []),
+      avatarColor: Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
+      isVerified: false,
+      skillsMatch: 0,
+      postedAt: 'recently',
+      matchedSkills: [],
+      responsibilities: [],
+    );
+  }
+
+  List<FeedOpportunity> get _results => _allOpportunities.where((o) {
     final matchesQuery =
         _query.isEmpty ||
-        value.role.toLowerCase().contains(_query.toLowerCase()) ||
-        value.startupName.toLowerCase().contains(_query.toLowerCase());
-    final matchesFilter =
-        _selectedFilter == 'All' || value.domain == _selectedFilter;
+        o.role.toLowerCase().contains(_query.toLowerCase()) ||
+        o.startupName.toLowerCase().contains(_query.toLowerCase());
+    final matchesFilter = _selectedFilter == 'All' || o.domain == _selectedFilter;
     return matchesQuery && matchesFilter;
   }).toList();
 
@@ -119,11 +171,19 @@ class _SearchScreensState extends State<SearchScreens> {
                       ],
                     ),
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _results.length,
-                    itemBuilder: (context, index) =>
-                        OpportunityCard(opportunity: _results[index]),
+                : StreamBuilder<Set<String>>(
+                    stream: _appliedIdsStream,
+                    builder: (context, appliedSnapshot) {
+                      final appliedIds = appliedSnapshot.data ?? {};
+                      return ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _results.length,
+                        itemBuilder: (context, index) => OpportunityCard(
+                          opportunity: _results[index],
+                          isApplied: appliedIds.contains(_results[index].opportunityId),
+                        ),
+                      );
+                    },
                   ),
           ),
         ],
