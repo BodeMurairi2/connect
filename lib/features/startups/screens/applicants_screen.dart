@@ -1,4 +1,6 @@
+import 'package:connect/features/startups/screens/application_detail_screen.dart';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/notification_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -79,11 +81,20 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
     );
   }
 
-  Future<void> _updateStatus(String appId, String status) async {
+  Future<void> _updateStatus(Map<String, dynamic> app, String status) async {
+    final id = app['id'] as String;
     try {
-      await ApplicationRepository().updateApplicationStatus(appId, status);
+      await ApplicationRepository().updateApplicationStatus(id, status);
+      // Fire-and-forget notification email
+      NotificationRepository().sendStatusUpdateNotification(
+        studentEmail: app['studentEmail'] as String? ?? '',
+        studentName: app['studentName'] as String? ?? '',
+        opportunityTitle: app['opportunityTitle'] as String? ?? '',
+        startupName: app['startupName'] as String? ?? '',
+        newStatus: status,
+      );
       setState(() {
-        final idx = _applications.indexWhere((a) => a['id'] == appId);
+        final idx = _applications.indexWhere((a) => a['id'] == id);
         if (idx != -1) _applications[idx] = {..._applications[idx], 'status': status};
       });
     } catch (e) {
@@ -96,7 +107,6 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
   }
 
   List<Widget> _buildActionButtons(Map<String, dynamic> app) {
-    final id = app['id'] as String;
     final status = app['status'] as String? ?? 'Pending';
 
     switch (status) {
@@ -104,7 +114,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _updateStatus(id, 'Declined'),
+              onPressed: () => _updateStatus(app, 'Declined'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
@@ -116,7 +126,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton(
-              onPressed: () => _updateStatus(id, 'Reviewing'),
+              onPressed: () => _updateStatus(app, 'Reviewing'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -130,7 +140,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _updateStatus(id, 'Declined'),
+              onPressed: () => _updateStatus(app, 'Declined'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
@@ -142,7 +152,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
           const SizedBox(width: 8),
           Expanded(
             child: ElevatedButton(
-              onPressed: () => _updateStatus(id, 'Accepted'),
+              onPressed: () => _updateStatus(app, 'Accepted'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -156,7 +166,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _updateStatus(id, 'Declined'),
+              onPressed: () => _updateStatus(app, 'Declined'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.red,
                 side: const BorderSide(color: Colors.red),
@@ -170,7 +180,7 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
         return [
           Expanded(
             child: OutlinedButton(
-              onPressed: () => _updateStatus(id, 'Reviewing'),
+              onPressed: () => _updateStatus(app, 'Reviewing'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.blue,
                 side: const BorderSide(color: Colors.blue),
@@ -185,6 +195,14 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
     }
   }
 
+  void _openApplication(Map<String, dynamic> app) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ApplicationDetailScreen(application: app),
+      ),
+    );
+  }
+
   Widget _buildApplicantCard(Map<String, dynamic> app) {
     final status = app['status'] as String? ?? 'Pending';
     final isAccepted = status == 'Accepted';
@@ -193,7 +211,9 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
     final coverLetter = app['coverLetter'] as String? ?? '';
     final email = app['studentEmail'] as String? ?? '';
 
-    return Container(
+    return GestureDetector(
+      onTap: () => _openApplication(app),
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -293,7 +313,8 @@ class _ApplicantsScreenState extends State<ApplicantsScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   @override
