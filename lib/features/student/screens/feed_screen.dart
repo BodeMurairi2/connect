@@ -1,4 +1,7 @@
+import 'dart:async';
+import 'package:connect/repositories/application_repository.dart';
 import 'package:connect/repositories/opportunity_repository.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/features/student/components/feed_headers.dart';
@@ -14,12 +17,28 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   String _selectedCategory = 'All';
-  late Future<List<Map<String, dynamic>>> _opportunitiesFuture;
+  Future<List<Map<String, dynamic>>> _opportunitiesFuture = Future.value([]);
+  Stream<Set<String>> _appliedIdsStream = const Stream.empty();
+  StreamSubscription<User?>? _authSub;
 
   @override
   void initState() {
     super.initState();
     _opportunitiesFuture = OpportunityRepository().getOpportunities();
+    _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null && mounted) {
+        setState(() {
+          _appliedIdsStream = ApplicationRepository()
+              .watchAppliedOpportunityIds(user.uid);
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
   }
 
   FeedOpportunity _mapToOpportunity(Map<String, dynamic> map) {
@@ -85,41 +104,50 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
             ),
           ),
-          FutureBuilder<List<Map<String, dynamic>>>(
-            future: _opportunitiesFuture,
-            builder: (context, connexion) {
-              if (connexion.connectionState == ConnectionState.waiting) {
-                return const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(40),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                );
-              }
-              if (connexion.hasError) {
-                return SliverToBoxAdapter(
-                  child: Center(child: Text('Error: ${connexion.error}')),
-                );
-              }
-              final opportunities = (connexion.data ?? [])
-                  .map(_mapToOpportunity)
-                  .where(
-                    (opportunity) =>
-                        _selectedCategory == 'All' ||
-                        opportunity.domain == _selectedCategory,
-                  )
-                  .toList();
-              return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => OpportunityCard(
-                      opportunity: opportunities[index],
-                      featured: index == 0,
+          StreamBuilder<Set<String>>(
+            stream: _appliedIdsStream,
+            builder: (context, appliedSnapshot) {
+              final appliedIds = appliedSnapshot.data ?? {};
+              return FutureBuilder<List<Map<String, dynamic>>>(
+                future: _opportunitiesFuture,
+                builder: (context, connexion) {
+                  if (connexion.connectionState == ConnectionState.waiting) {
+                    return const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    );
+                  }
+                  if (connexion.hasError) {
+                    return SliverToBoxAdapter(
+                      child: Center(child: Text('Error: ${connexion.error}')),
+                    );
+                  }
+                  final opportunities = (connexion.data ?? [])
+                      .map(_mapToOpportunity)
+                      .where(
+                        (opportunity) =>
+                            _selectedCategory == 'All' ||
+                            opportunity.domain == _selectedCategory,
+                      )
+                      .toList();
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) => OpportunityCard(
+                          opportunity: opportunities[index],
+                          featured: index == 0,
+                          isApplied: appliedIds.contains(
+                            opportunities[index].opportunityId,
+                          ),
+                        ),
+                        childCount: opportunities.length,
+                      ),
                     ),
-                    childCount: opportunities.length,
-                  ),
-                ),
+                  );
+                },
               );
             },
           ),
