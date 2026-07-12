@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connect/repositories/opportunity_repository.dart';
 
 class FeedOpportunity {
   final String opportunityId;

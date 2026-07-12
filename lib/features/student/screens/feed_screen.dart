@@ -1,3 +1,4 @@
+import 'package:connect/repositories/opportunity_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/features/student/components/feed_headers.dart';
@@ -13,13 +14,36 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   String _selectedCategory = 'All';
+  late Future<List<Map<String, dynamic>>> _opportunitiesFuture;
 
-  List<FeedOpportunity> get _filteredOpportunities =>
-      _selectedCategory == 'All'
-          ? feedOpportunities
-          : feedOpportunities
-              .where((opportunity) => opportunity.domain == _selectedCategory)
-              .toList();
+  @override
+  void initState() {
+    super.initState();
+    _opportunitiesFuture = OpportunityRepository().getOpportunities();
+  }
+
+  FeedOpportunity _mapToOpportunity(Map<String, dynamic> map) {
+    final name = map['startupName'] as String? ?? '';
+    return FeedOpportunity(
+      opportunityId: map['id'] as String? ?? '',
+      startupUid: map['startupUid'] as String? ?? '',
+      startupName: name,
+      role: map['title'] as String? ?? '',
+      domain: map['roleType'] as String? ?? '',
+      compensation: map['compensation'] as String? ?? '',
+      duration: map['duration'] as String? ?? '',
+      location: map['locationType'] as String? ?? '',
+      avatarColor:
+          Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
+      isVerified: false,
+      skillsMatch: 0,
+      postedAt: 'recently',
+      description: map['description'] as String? ?? '',
+      skills: List<String>.from(map['skills'] ?? []),
+      matchedSkills: [],
+      responsibilities: [],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,17 +85,43 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (context, index) => OpportunityCard(
-                  opportunity: _filteredOpportunities[index],
-                  featured: index == 0,
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _opportunitiesFuture,
+            builder: (context, connexion) {
+              if (connexion.connectionState == ConnectionState.waiting) {
+                return const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                );
+              }
+              if (connexion.hasError) {
+                return SliverToBoxAdapter(
+                  child: Center(child: Text('Error: ${connexion.error}')),
+                );
+              }
+              final opportunities = (connexion.data ?? [])
+                  .map(_mapToOpportunity)
+                  .where(
+                    (opportunity) =>
+                        _selectedCategory == 'All' ||
+                        opportunity.domain == _selectedCategory,
+                  )
+                  .toList();
+              return SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => OpportunityCard(
+                      opportunity: opportunities[index],
+                      featured: index == 0,
+                    ),
+                    childCount: opportunities.length,
+                  ),
                 ),
-                childCount: _filteredOpportunities.length,
-              ),
-            ),
+              );
+            },
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],

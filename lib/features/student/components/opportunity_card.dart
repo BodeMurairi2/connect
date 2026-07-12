@@ -83,7 +83,7 @@ class OpportunityCard extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  opportunity.startupName[0],
+                  opportunity.startupName.isNotEmpty ? opportunity.startupName[0] : '?',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
