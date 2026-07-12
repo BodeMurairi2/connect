@@ -1,0 +1,643 @@
+<style>
+:root {
+  --bg:              #EEF2F9;
+  --surface:         #FFFFFF;
+  --border:          #D0DCF0;
+  --text-primary:    #1A2338;
+  --text-secondary:  #4E5D78;
+  --text-muted:      #8896B0;
+  --connector:       #A0B0CC;
+
+  --ui:       #1565C0;
+  --ui-bg:    #E8F0FD;
+  --bloc:     #6A1B9A;
+  --bloc-bg:  #F2E8FA;
+  --repo:     #00695C;
+  --repo-bg:  #E0F2F0;
+  --back:     #BF360C;
+  --back-bg:  #FDECEA;
+
+  --node-bg:     #FFFFFF;
+  --node-border: #DDE6F4;
+  --group-bg:    #F6F8FC;
+  --shadow:      0 2px 10px rgba(26,41,80,0.07), 0 0 0 1px var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:              #0D1117;
+    --surface:         #161B22;
+    --border:          #273040;
+    --text-primary:    #CDD9E5;
+    --text-secondary:  #8B95A8;
+    --text-muted:      #59677A;
+    --connector:       #3E5070;
+    --ui-bg:    #111D38;
+    --bloc-bg:  #1A1030;
+    --repo-bg:  #0A2420;
+    --back-bg:  #2A1008;
+    --node-bg:     #1C2533;
+    --node-border: #273040;
+    --group-bg:    #161C28;
+    --shadow:      0 2px 12px rgba(0,0,0,0.35), 0 0 0 1px var(--border);
+  }
+}
+
+:root[data-theme="light"] {
+  --bg:              #EEF2F9;
+  --surface:         #FFFFFF;
+  --border:          #D0DCF0;
+  --text-primary:    #1A2338;
+  --text-secondary:  #4E5D78;
+  --text-muted:      #8896B0;
+  --connector:       #A0B0CC;
+  --ui-bg:    #E8F0FD;
+  --bloc-bg:  #F2E8FA;
+  --repo-bg:  #E0F2F0;
+  --back-bg:  #FDECEA;
+  --node-bg:     #FFFFFF;
+  --node-border: #DDE6F4;
+  --group-bg:    #F6F8FC;
+  --shadow:      0 2px 10px rgba(26,41,80,0.07), 0 0 0 1px var(--border);
+}
+
+:root[data-theme="dark"] {
+  --bg:              #0D1117;
+  --surface:         #161B22;
+  --border:          #273040;
+  --text-primary:    #CDD9E5;
+  --text-secondary:  #8B95A8;
+  --text-muted:      #59677A;
+  --connector:       #3E5070;
+  --ui-bg:    #111D38;
+  --bloc-bg:  #1A1030;
+  --repo-bg:  #0A2420;
+  --back-bg:  #2A1008;
+  --node-bg:     #1C2533;
+  --node-border: #273040;
+  --group-bg:    #161C28;
+  --shadow:      0 2px 12px rgba(0,0,0,0.35), 0 0 0 1px var(--border);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  min-height: 100vh;
+  padding: 44px 28px 52px;
+}
+
+/* ─── Header ─── */
+.page-header {
+  text-align: center;
+  margin-bottom: 36px;
+}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+  text-wrap: balance;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.title span {
+  color: var(--ui);
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* ─── Diagram scroll wrapper ─── */
+.diagram-wrapper {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* ─── Diagram row ─── */
+.diagram {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-width: 920px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ─── Connector arrow ─── */
+.connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  flex-shrink: 0;
+}
+
+.connector svg {
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* ─── Layer card ─── */
+.layer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.layer-header {
+  padding: 14px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.layer-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 3px;
+  width: fit-content;
+  color: #fff;
+}
+
+.layer-name {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.layer-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* ─── Nodes ─── */
+.layer-nodes {
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.group-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 4px 4px 2px;
+  margin-top: 4px;
+}
+
+.group-label:first-child {
+  margin-top: 0;
+}
+
+.node {
+  background: var(--node-bg);
+  border: 1px solid var(--node-border);
+  border-radius: 7px;
+  padding: 6px 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.node.sub {
+  background: var(--group-bg);
+  margin-left: 8px;
+}
+
+.dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.node-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.node-name {
+  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', 'Courier New', monospace;
+  font-size: 10.5px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.node-desc {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+/* ─── Layer-specific tints ─── */
+.layer-ui .layer-header   { background: var(--ui-bg); }
+.layer-ui .layer-tag      { background: var(--ui); }
+.layer-ui .layer-name     { color: var(--ui); }
+.layer-ui .dot            { background: var(--ui); }
+
+.layer-bloc .layer-header  { background: var(--bloc-bg); }
+.layer-bloc .layer-tag     { background: var(--bloc); }
+.layer-bloc .layer-name    { color: var(--bloc); }
+.layer-bloc .dot           { background: var(--bloc); }
+
+.layer-repo .layer-header  { background: var(--repo-bg); }
+.layer-repo .layer-tag     { background: var(--repo); }
+.layer-repo .layer-name    { color: var(--repo); }
+.layer-repo .dot           { background: var(--repo); }
+
+.layer-back .layer-header  { background: var(--back-bg); }
+.layer-back .layer-tag     { background: var(--back); }
+.layer-back .layer-name    { color: var(--back); }
+.layer-back .dot           { background: var(--back); }
+
+/* ─── Footer ─── */
+.footer {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.caption {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="page-header">
+  <p class="eyebrow">Component Diagram</p>
+  <h1 class="title"><span>AnzaConnect</span> System Architecture</h1>
+  <p class="subtitle">Unidirectional data flow — screens dispatch events to BLoC state machines, which call repositories, which read from and write to Firebase backend services.</p>
+</div>
+
+<div class="diagram-wrapper">
+  <div class="diagram">
+
+    <!-- ── Layer 1: Flutter UI ── -->
+    <div class="layer layer-ui">
+      <div class="layer-header">
+        <span class="layer-tag">UI</span>
+        <span class="layer-name">Flutter Screens</span>
+        <span class="layer-role">Widgets, user interactions &amp; navigation via go_router</span>
+      </div>
+      <div class="layer-nodes">
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">FeedScreen</span>
+            <span class="node-desc">Opportunity feed + bookmarks</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">OpportunityDetail</span>
+            <span class="node-desc">Role, deadline, apply flow</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">ApplyScreen</span>
+            <span class="node-desc">Cover letter + doc upload</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">BookmarkScreen</span>
+            <span class="node-desc">StreamBuilder on saved items</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">StudentProfile</span>
+            <span class="node-desc">Photo, name, applications</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">StartupDashboard</span>
+            <span class="node-desc">Post opportunities, view apps</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">AdminDashboard</span>
+            <span class="node-desc">Verify / revoke startups</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">LoginScreen</span>
+            <span class="node-desc">Email &amp; Google sign-in</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Arrow 1→2 ── -->
+    <div class="connector" aria-hidden="true">
+      <svg width="38" height="18" viewBox="0 0 38 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="9" x2="30" y2="9" stroke="var(--connector)" stroke-width="1.5"/>
+        <polyline points="24,3 34,9 24,15" stroke="var(--connector)" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 2: BLoC ── -->
+    <div class="layer layer-bloc">
+      <div class="layer-header">
+        <span class="layer-tag">STATE</span>
+        <span class="layer-name">BLoC Layer</span>
+        <span class="layer-role">Events in → state out. Screens listen via BlocBuilder</span>
+      </div>
+      <div class="layer-nodes">
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">FeedBloc</span>
+            <span class="node-desc">LoadFeed, BookmarkedIdsUpdated</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">FeedLoaded</span>
+            <span class="node-desc">opportunities, bookmarkedIds, studentName</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">AuthBloc</span>
+            <span class="node-desc">LoginRequested, RegisterRequested</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">AuthAuthenticated</span>
+            <span class="node-desc">role-based navigation on emit</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">StartupBloc</span>
+            <span class="node-desc">LoadStartup, PostOpportunity</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">StartupLoaded</span>
+            <span class="node-desc">startup map + opportunity list</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Arrow 2→3 ── -->
+    <div class="connector" aria-hidden="true">
+      <svg width="38" height="18" viewBox="0 0 38 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="9" x2="30" y2="9" stroke="var(--connector)" stroke-width="1.5"/>
+        <polyline points="24,3 34,9 24,15" stroke="var(--connector)" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 3: Repositories ── -->
+    <div class="layer layer-repo">
+      <div class="layer-header">
+        <span class="layer-tag">DATA</span>
+        <span class="layer-name">Repository Layer</span>
+        <span class="layer-role">Encapsulates Firestore queries and external service calls</span>
+      </div>
+      <div class="layer-nodes">
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">OpportunityRepository</span>
+            <span class="node-desc">getOpenOpportunities(), sort by date</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">BookmarkRepository</span>
+            <span class="node-desc">addBookmark, watchBookmarks stream</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">ApplicationRepository</span>
+            <span class="node-desc">submitApplication, updateStatus</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">StartupRepository</span>
+            <span class="node-desc">getAllStartups, setVerified</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">AuthService</span>
+            <span class="node-desc">signIn, signUp, signOut, isAdmin</span>
+          </div>
+        </div>
+        <div class="node">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">R2StorageService</span>
+            <span class="node-desc">AWS4-HMAC-SHA256 signed upload</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Arrow 3→4 ── -->
+    <div class="connector" aria-hidden="true">
+      <svg width="38" height="18" viewBox="0 0 38 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="0" y1="9" x2="30" y2="9" stroke="var(--connector)" stroke-width="1.5"/>
+        <polyline points="24,3 34,9 24,15" stroke="var(--connector)" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+    </div>
+
+    <!-- ── Layer 4: Backend Services ── -->
+    <div class="layer layer-back">
+      <div class="layer-header">
+        <span class="layer-tag">BACKEND</span>
+        <span class="layer-name">Firebase &amp; Services</span>
+        <span class="layer-role">Persistent storage, authentication &amp; external integrations</span>
+      </div>
+      <div class="layer-nodes">
+        <p class="group-label">Firestore Collections</p>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Opportunities/</span>
+            <span class="node-desc">isOpen, deadline, field, type</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Users/</span>
+            <span class="node-desc">firstName, role, uid</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Bookmarks/{uid}/items/</span>
+            <span class="node-desc">subcollection, savedAt timestamp</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Startups/</span>
+            <span class="node-desc">logoUrl, isVerified, documents</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Applications/</span>
+            <span class="node-desc">status, coverLetter, fileUrls</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">admins/</span>
+            <span class="node-desc">document ID = facilitator UID</span>
+          </div>
+        </div>
+        <p class="group-label">Auth &amp; Storage</p>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Firebase Auth</span>
+            <span class="node-desc">Email/password + Google OAuth</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">Cloudflare R2</span>
+            <span class="node-desc">Document &amp; logo file storage</span>
+          </div>
+        </div>
+        <div class="node sub">
+          <span class="dot"></span>
+          <div class="node-text">
+            <span class="node-name">SMTP</span>
+            <span class="node-desc">Email on submit &amp; status change</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /diagram -->
+</div><!-- /diagram-wrapper -->
+
+<div class="footer">
+  <div class="legend">
+    <div class="legend-item">
+      <span class="legend-swatch" style="background: var(--ui);"></span>
+      Flutter UI
+    </div>
+    <div class="legend-item">
+      <span class="legend-swatch" style="background: var(--bloc);"></span>
+      BLoC / State
+    </div>
+    <div class="legend-item">
+      <span class="legend-swatch" style="background: var(--repo);"></span>
+      Repository / Data
+    </div>
+    <div class="legend-item">
+      <span class="legend-swatch" style="background: var(--back);"></span>
+      Firebase &amp; Services
+    </div>
+  </div>
+  <p class="caption">AnzaConnect · Flutter + Firebase · ALU Formative 2 · ft/firebase_backend</p>
+</div>

@@ -228,6 +228,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     final major           = _studentDoc?['major']           as String? ?? '';
     final year            = _studentDoc?['year']            as String? ?? '';
     final specialization  = _studentDoc?['specialization']  as String? ?? '';
+    final photoUrl        = user?.photoURL;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
@@ -271,11 +272,16 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.blue,
-                          child: Text(_initials,
-                              style: const TextStyle(
-                                  fontSize: 28,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
+                          backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                              ? NetworkImage(photoUrl)
+                              : null,
+                          child: (photoUrl == null || photoUrl.isEmpty)
+                              ? Text(_initials,
+                                  style: const TextStyle(
+                                      fontSize: 28,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold))
+                              : null,
                         ),
                         const SizedBox(height: 12),
                         Text(_displayName,

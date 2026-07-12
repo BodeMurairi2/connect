@@ -1,55 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connect/features/startups/bloc/startup_bloc.dart';
+import 'package:connect/features/startups/bloc/startup_event.dart';
 import 'package:connect/features/startups/screens/startup_dashboard_screen.dart';
 import 'package:connect/features/startups/screens/post_opportunity_screen.dart';
 import 'package:connect/features/startups/screens/applicants_screen.dart';
 
-class StartupHomeScreen extends StatefulWidget {
+class StartupHomeScreen extends StatelessWidget {
   const StartupHomeScreen({super.key});
 
   @override
-  State<StartupHomeScreen> createState() => _StartupHomeScreenState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => StartupBloc()..add(LoadDashboard()),
+      child: const _StartupHomeBody(),
+    );
+  }
 }
 
-class _StartupHomeScreenState extends State<StartupHomeScreen> {
-  int _currentIndex = 0;
-  final _refreshSignal = ValueNotifier<int>(0);
-
-  late final List<Widget> _screens = [
-    StartupDashboardScreen(
-      refreshSignal: _refreshSignal,
-      onNewOpportunity: () => setState(() => _currentIndex = 1),
-    ),
-    PostOpportunityScreen(
-      onPosted: () {
-        _refreshSignal.value++;
-        setState(() => _currentIndex = 0);
-      },
-    ),
-    const ApplicantsScreen(),
-  ];
+class _StartupHomeBody extends StatefulWidget {
+  const _StartupHomeBody();
 
   @override
-  void dispose() {
-    _refreshSignal.dispose();
-    super.dispose();
+  State<_StartupHomeBody> createState() => _StartupHomeBodyState();
+}
+
+class _StartupHomeBodyState extends State<_StartupHomeBody> {
+  int _currentIndex = 0;
+
+  void _onTabChanged(int index) {
+    setState(() => _currentIndex = index);
+    if (index == 2) {
+      context.read<StartupBloc>().add(LoadApplicants());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+    final screens = [
+      StartupDashboardScreen(
+        onNewOpportunity: () => setState(() => _currentIndex = 1),
       ),
+      PostOpportunityScreen(
+        onPosted: () {
+          context.read<StartupBloc>().add(LoadDashboard());
+          setState(() => _currentIndex = 0);
+        },
+      ),
+      const ApplicantsScreen(),
+    ];
+
+    return Scaffold(
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onTabChanged,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.add_box), label: 'Post'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Applicants'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_box), label: 'Post'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.people), label: 'Applicants'),
         ],
       ),
     );

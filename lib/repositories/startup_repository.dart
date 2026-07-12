@@ -65,4 +65,24 @@ class StartupRepository {
     final fileName = file.path.split('/').last;
     return await _r2.uploadFile(file, 'startups/$uid/$docType/$fileName');
   }
+
+  Future<List<Map<String, dynamic>>> getAllStartups() async {
+    final snapshot = await _firestore.collection('Startups').get();
+    return snapshot.docs
+        .map((doc) => {'id': doc.id, ...doc.data()})
+        .toList()
+      ..sort((a, b) {
+        final aVerified = a['isVerified'] == true;
+        final bVerified = b['isVerified'] == true;
+        if (aVerified == bVerified) return 0;
+        return aVerified ? 1 : -1; // pending first
+      });
+  }
+
+  Future<void> setVerified(String uid, {required bool verified}) async {
+    await _firestore
+        .collection('Startups')
+        .doc(uid)
+        .update({'isVerified': verified});
+  }
 }

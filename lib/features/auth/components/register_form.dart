@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:connect/repositories/auth_repository.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connect/features/auth/bloc/auth_bloc.dart';
+import 'package:connect/features/auth/bloc/auth_event.dart';
+import 'package:connect/features/auth/bloc/auth_state.dart';
 
 class RegisterForm extends StatefulWidget {
-  final VoidCallback onSuccess;
   final String role;
-
-  const RegisterForm({super.key, required this.onSuccess, required this.role});
+  const RegisterForm({super.key, required this.role});
 
   @override
   State<RegisterForm> createState() => _RegisterFormState();
@@ -22,13 +22,10 @@ class _RegisterFormState extends State<RegisterForm> {
       TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
-  static const _labelStyle = TextStyle(
-    fontWeight: FontWeight.bold,
-    fontSize: 14,
-  );
+  static const _labelStyle =
+      TextStyle(fontWeight: FontWeight.bold, fontSize: 14);
   static final _fieldBorder = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide.none,
@@ -172,17 +169,18 @@ class _RegisterFormState extends State<RegisterForm> {
                 border: _fieldBorder,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    _obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
                   ),
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
-              // for user safety, only password with at least 8 chars will be accepted
               validator: (value) {
                 if (value == null || value.length < 8 || value.length > 16) {
                   return "Password must be between 8 and 16 characters";
-                } // additional validation rules will be implemented later
+                }
                 return null;
               },
             ),
@@ -205,7 +203,8 @@ class _RegisterFormState extends State<RegisterForm> {
                         : Icons.visibility,
                   ),
                   onPressed: () => setState(
-                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    () =>
+                        _obscureConfirmPassword = !_obscureConfirmPassword,
                   ),
                 ),
               ),
@@ -221,49 +220,56 @@ class _RegisterFormState extends State<RegisterForm> {
             ),
             const SizedBox(height: 28),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (_formkey.currentState!.validate()) {
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      final credential = await _authRepository
-                          .registerWithEmail(
-                            _emailController.text.trim(),
-                            _passwordController.text,
-                          );
-                      await _authRepository.saveUserToFirestore(
-                        uid: credential.user!.uid,
-                        firstName: _firstNameController.text.trim(),
-                        lastName: _lastNameController.text.trim(),
-                        email: _emailController.text.trim(),
-                        role: widget.role,
-                      );
-                      await _authRepository.sendEmailVerification();
-                      widget.onSuccess();
-                    } on FirebaseAuthException catch (error) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(error.message ?? 'Registration failed'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isLoading = state is AuthLoading;
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            if (_formkey.currentState!.validate()) {
+                              context.read<AuthBloc>().add(
+                                    RegisterWithEmailRequested(
+                                      firstName:
+                                          _firstNameController.text.trim(),
+                                      lastName:
+                                          _lastNameController.text.trim(),
+                                      email: _emailController.text.trim(),
+                                      password: _passwordController.text,
+                                      role: widget.role,
+                                    ),
+                                  );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "Create Account",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
-                ),
-                child: const Text(
-                  "Create Account",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+                );
+              },
             ),
             const SizedBox(height: 24),
           ],
