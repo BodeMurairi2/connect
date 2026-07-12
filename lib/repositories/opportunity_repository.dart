@@ -65,6 +65,12 @@ class OpportunityRepository {
     });
   }
 
+  Future<Map<String, dynamic>?> getOpportunityById(String id) async {
+    final doc = await _firestore.collection('Opportunities').doc(id).get();
+    if (!doc.exists) return null;
+    return {'id': doc.id, ...doc.data()!};
+  }
+
   Future<List<Map<String, dynamic>>> getOpportunities() async {
     final docOpportunities = await _firestore
         .collection('Opportunities')

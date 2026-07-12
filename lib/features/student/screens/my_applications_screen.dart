@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
+import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/opportunity_repository.dart';
 
 class MyApplicationsScreen extends StatefulWidget {
   const MyApplicationsScreen({super.key});
@@ -31,6 +34,31 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
   void dispose() {
     _authSub?.cancel();
     super.dispose();
+  }
+
+  Future<void> _openOpportunity(String opportunityId) async {
+    final map = await OpportunityRepository().getOpportunityById(opportunityId);
+    if (map == null || !mounted) return;
+    final name = map['startupName'] as String? ?? '';
+    final opportunity = FeedOpportunity(
+      opportunityId: map['id'] as String? ?? '',
+      startupUid: map['startupUid'] as String? ?? '',
+      startupName: name,
+      role: map['title'] as String? ?? '',
+      domain: map['roleType'] as String? ?? '',
+      compensation: map['compensation'] as String? ?? '',
+      duration: map['duration'] as String? ?? '',
+      location: map['locationType'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      skills: List<String>.from(map['skills'] ?? []),
+      avatarColor: Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
+      isVerified: false,
+      skillsMatch: 0,
+      postedAt: 'recently',
+      matchedSkills: [],
+      responsibilities: [],
+    );
+    if (mounted) context.push('/student/opportunity', extra: opportunity);
   }
 
   Color _statusColor(String status) {
@@ -85,7 +113,9 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
             itemBuilder: (context, index) {
               final app = apps[index];
               final status = app['status'] as String? ?? 'Pending';
-              return Container(
+              return GestureDetector(
+                onTap: () => _openOpportunity(app['opportunityId'] as String? ?? ''),
+                child: Container(
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -137,6 +167,7 @@ class _MyApplicationsScreenState extends State<MyApplicationsScreen> {
                     ),
                   ],
                 ),
+              ),
               );
             },
           );
