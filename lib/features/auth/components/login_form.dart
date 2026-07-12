@@ -80,7 +80,7 @@ class _LoginFormState extends State<LoginForm> {
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                hintText: "you@alustudent.com",
+                hintText: "Enter your email",
                 filled: true,
                 fillColor: _fieldFill,
                 border: _fieldBorder,
@@ -88,10 +88,6 @@ class _LoginFormState extends State<LoginForm> {
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
-                }
-                if (widget.role == 'student' &&
-                    !value.trim().toLowerCase().endsWith('@alustudent.com')) {
-                  return "Must be a valid ALU email";
                 }
                 return null;
               },
