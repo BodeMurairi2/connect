@@ -1,14 +1,14 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connect/features/auth/bloc/auth_bloc.dart';
+import 'package:connect/features/auth/bloc/auth_event.dart';
+import 'package:connect/features/auth/bloc/auth_state.dart';
 import 'package:connect/repositories/auth_repository.dart';
-import 'package:connect/repositories/startup_repository.dart';
-import 'package:connect/repositories/student_repository.dart';
 
 class LoginForm extends StatefulWidget {
-  final Function(String destination) onSuccess;
   final String role;
-  const LoginForm({super.key, required this.onSuccess, required this.role});
+  const LoginForm({super.key, required this.role});
 
   @override
   State<LoginForm> createState() => _LoginFormState();
@@ -22,10 +22,7 @@ class _LoginFormState extends State<LoginForm> {
   final _authRepository = AuthService();
 
   static const _fieldFill = Color(0xFFF0F4FF);
-  static const _labelStyle = TextStyle(
-    fontWeight: FontWeight.bold,
-    fontSize: 14,
-  );
+  static const _labelStyle = TextStyle(fontWeight: FontWeight.bold, fontSize: 14);
   static final _fieldBorder = OutlineInputBorder(
     borderRadius: BorderRadius.circular(12),
     borderSide: BorderSide.none,
@@ -88,7 +85,6 @@ class _LoginFormState extends State<LoginForm> {
                 fillColor: _fieldFill,
                 border: _fieldBorder,
               ),
-              // validate only alustudent.com and alueducation.com
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
                   return "Email is required";
@@ -114,22 +110,21 @@ class _LoginFormState extends State<LoginForm> {
                 border: _fieldBorder,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    _obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
                   ),
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
                 ),
               ),
               validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return "Password is required";
-                }
+                if (value == null || value.isEmpty) return "Password is required";
                 return null;
               },
             ),
             const SizedBox(height: 4),
 
-            // Add forgot password in case an user needs to change password
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -168,8 +163,7 @@ class _LoginFormState extends State<LoginForm> {
                               messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    error.message ??
-                                        'Failed to send reset email',
+                                    error.message ?? 'Failed to send reset email',
                                   ),
                                 ),
                               );
@@ -189,61 +183,52 @@ class _LoginFormState extends State<LoginForm> {
             ),
             const SizedBox(height: 8),
 
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (_formkey.currentState!.validate()) {
-                    final messenger = ScaffoldMessenger.of(context);
-                    try {
-                      final credential = await _authRepository.signInWithEmail(
-                        _emailController.text.trim(),
-                        _passwordController.text,
-                      );
-                      final uid = credential.user!.uid;
-                      final adminCheck = await _authRepository.isAdmin(uid);
-
-                      // get now role from firestore
-                      final userDoc = await FirebaseFirestore.instance
-                          .collection('Users')
-                          .doc(uid)
-                          .get();
-                      final role =
-                          userDoc.data()?['role'] as String? ?? 'student';
-
-                      if (adminCheck) {
-                        widget.onSuccess('admin');
-                      } else if (role == 'startup') {
-                        final hasProfile = await StartupRepository().hasCompletedOnboarding(uid);
-                        widget.onSuccess(hasProfile ? 'startup' : 'onboarding/startup');
-                      } else if (role == 'student') {
-                        final hasProfile = await StudentRepository().hasCompletedOnboarding(uid);
-                        widget.onSuccess(hasProfile ? 'student' : 'onboarding/student');
-                      } else {
-                        widget.onSuccess(role);
-                      }
-                    } on FirebaseAuthException catch (error) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(error.message ?? 'Login Failed'),
-                        ),
-                      );
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isLoading = state is AuthLoading;
+                return SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            if (_formkey.currentState!.validate()) {
+                              context.read<AuthBloc>().add(
+                                    LoginWithEmailRequested(
+                                      email: _emailController.text.trim(),
+                                      password: _passwordController.text,
+                                      role: widget.role,
+                                    ),
+                                  );
+                            }
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            "Sign In",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
-                ),
-                child: const Text(
-                  "Sign In",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
+                );
+              },
             ),
             const SizedBox(height: 24),
           ],

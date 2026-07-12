@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:connect/features/startups/bloc/startup_bloc.dart';
+import 'package:connect/features/startups/bloc/startup_event.dart';
 import 'package:connect/repositories/student_repository.dart';
-import 'package:connect/repositories/application_repository.dart';
-import 'package:connect/repositories/notification_repository.dart';
 
 class ApplicationDetailScreen extends StatefulWidget {
   final Map<String, dynamic> application;
@@ -65,24 +66,11 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
     }
   }
 
-  Future<void> _updateStatus(String status) async {
-    final id = _app['id'] as String;
-    try {
-      await ApplicationRepository().updateApplicationStatus(id, status);
-      NotificationRepository().sendStatusUpdateNotification(
-        studentEmail: _app['studentEmail'] as String? ?? '',
-        studentName: _app['studentName'] as String? ?? '',
-        opportunityTitle: _app['opportunityTitle'] as String? ?? '',
-        startupName: _app['startupName'] as String? ?? '',
-        newStatus: status,
-      );
-      setState(() => _app = {..._app, 'status': status});
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Failed: $e')));
-      }
-    }
+  void _updateStatus(String status) {
+    context.read<StartupBloc>().add(
+          UpdateApplicantStatus(app: _app, newStatus: status),
+        );
+    setState(() => _app = {..._app, 'status': status});
   }
 
   Widget _statusBadge(String status) {

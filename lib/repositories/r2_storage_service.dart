@@ -30,6 +30,11 @@ class R2StorageService {
     required String objectKey,
     required String contentType,
   }) async {
+    if (_endpoint.isEmpty || _bucket.isEmpty) {
+      throw Exception(
+        'R2 credentials missing — run with --dart-define-from-file=.env.json',
+      );
+    }
     final now = DateTime.now().toUtc();
     final dateStr = _formatDate(now);
     final datetimeStr = _formatDatetime(now);

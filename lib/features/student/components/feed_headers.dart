@@ -2,10 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 
 class FeedHeaderSliver extends StatelessWidget {
-  const FeedHeaderSliver({super.key});
+  final String studentName;
+  final String? photoUrl;
+
+  const FeedHeaderSliver({
+    super.key,
+    required this.studentName,
+    this.photoUrl,
+  });
+
+  Widget _fallbackAvatar(String letter) {
+    return Container(
+      width: 42,
+      height: 42,
+      color: Colors.blue,
+      alignment: Alignment.center,
+      child: Text(
+        letter,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 17,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final displayName = studentName.isNotEmpty ? studentName : 'there';
+    final firstLetter =
+        studentName.isNotEmpty ? studentName[0].toUpperCase() : '?';
+    final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
+
     return SliverAppBar(
       backgroundColor: Colors.white,
       elevation: 0,
@@ -21,14 +50,14 @@ class FeedHeaderSliver extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Welcome back,',
                       style: TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                     Text(
-                      'Bode 👋',
-                      style: TextStyle(
+                      '$displayName 👋',
+                      style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.black,
@@ -39,22 +68,18 @@ class FeedHeaderSliver extends StatelessWidget {
                 ),
                 Stack(
                   children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        'B',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 17,
-                        ),
-                      ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: hasPhoto
+                          ? Image.network(
+                              photoUrl!,
+                              width: 42,
+                              height: 42,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  _fallbackAvatar(firstLetter),
+                            )
+                          : _fallbackAvatar(firstLetter),
                     ),
                     Positioned(
                       top: 0,

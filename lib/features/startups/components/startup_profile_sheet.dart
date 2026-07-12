@@ -5,24 +5,28 @@ import 'package:connect/repositories/auth_repository.dart';
 class StartupProfileSheet extends StatefulWidget {
   final String name;
   final String email;
+  final String? logoUrl;
 
   const StartupProfileSheet({
     super.key,
     required this.name,
     required this.email,
+    this.logoUrl,
   });
 
   static void show(
     BuildContext context, {
     required String name,
     required String email,
+    String? logoUrl,
   }) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => StartupProfileSheet(name: name, email: email),
+      builder: (_) =>
+          StartupProfileSheet(name: name, email: email, logoUrl: logoUrl),
     );
   }
 
@@ -76,6 +80,7 @@ class _StartupProfileSheetState extends State<StartupProfileSheet> {
   Widget build(BuildContext context) {
     final firstLetter =
         widget.name.isNotEmpty ? widget.name[0].toUpperCase() : 'S';
+    final logoUrl = widget.logoUrl;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
@@ -94,14 +99,19 @@ class _StartupProfileSheetState extends State<StartupProfileSheet> {
           CircleAvatar(
             radius: 32,
             backgroundColor: Colors.blue,
-            child: Text(
-              firstLetter,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
-            ),
+            backgroundImage: (logoUrl != null && logoUrl.isNotEmpty)
+                ? NetworkImage(logoUrl)
+                : null,
+            child: (logoUrl == null || logoUrl.isEmpty)
+                ? Text(
+                    firstLetter,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 24,
+                    ),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
           Text(
