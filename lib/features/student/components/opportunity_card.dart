@@ -6,13 +6,21 @@ class OpportunityCard extends StatelessWidget {
   final FeedOpportunity opportunity;
   final bool featured;
   final bool isApplied;
+  final bool isBookmarked;
+  final VoidCallback? onBookmark;
 
   const OpportunityCard({
     super.key,
     required this.opportunity,
     this.featured = false,
     this.isApplied = false,
+    this.isBookmarked = false,
+    this.onBookmark,
   });
+
+  bool get _deadlinePassed =>
+      opportunity.deadline != null &&
+      DateTime.now().isAfter(opportunity.deadline!);
 
   Color _compensationColor(String compensation) {
     switch (compensation) {
@@ -72,6 +80,24 @@ class OpportunityCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_deadlinePassed)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                'Deadline has passed',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
           Row(
             children: [
               Container(
@@ -83,7 +109,9 @@ class OpportunityCard extends StatelessWidget {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  opportunity.startupName.isNotEmpty ? opportunity.startupName[0] : '?',
+                  opportunity.startupName.isNotEmpty
+                      ? opportunity.startupName[0]
+                      : '?',
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -141,17 +169,22 @@ class OpportunityCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1F4F9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.bookmark_border,
-                  size: 16,
-                  color: Colors.grey,
+              GestureDetector(
+                onTap: onBookmark,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: isBookmarked
+                        ? Colors.blue.withValues(alpha: 0.1)
+                        : const Color(0xFFF1F4F9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    size: 16,
+                    color: isBookmarked ? Colors.blue : Colors.grey,
+                  ),
                 ),
               ),
             ],
@@ -164,6 +197,13 @@ class OpportunityCard extends StatelessWidget {
               _buildTag(opportunity.domain),
               _buildCompensationTag(opportunity.compensation),
               _buildTag(opportunity.duration, color: Colors.grey),
+              if (opportunity.deadline != null)
+                _buildTag(
+                  _deadlinePassed
+                      ? 'Deadline passed'
+                      : 'Due ${_formatDate(opportunity.deadline!)}',
+                  color: _deadlinePassed ? Colors.red : Colors.deepOrange,
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -253,5 +293,9 @@ class OpportunityCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 }

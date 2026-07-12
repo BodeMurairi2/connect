@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class FeedStatsRow extends StatelessWidget {
-  const FeedStatsRow({super.key});
+  final int openCount;
+  final int appliedCount;
+
+  const FeedStatsRow({
+    super.key,
+    required this.openCount,
+    required this.appliedCount,
+  });
 
   Widget _buildStatCard(String number, String label, Color color) {
     return Expanded(
@@ -53,11 +60,9 @@ class FeedStatsRow extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
         child: Row(
           children: [
-            _buildStatCard('24', 'Open Roles', Colors.blue),
+            _buildStatCard('$openCount', 'Open Roles', Colors.blue),
             const SizedBox(width: 10),
-            _buildStatCard('8', 'For You', Colors.green),
-            const SizedBox(width: 10),
-            _buildStatCard('3', 'Applied', Colors.orange),
+            _buildStatCard('$appliedCount', 'Applied', Colors.orange),
           ],
         ),
       ),

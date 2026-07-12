@@ -3,6 +3,7 @@ import 'package:connect/features/student/screens/feed_screen.dart';
 import 'package:connect/features/student/screens/search_screens.dart';
 import 'package:connect/features/student/screens/bookmark_screen.dart';
 import 'package:connect/features/student/screens/my_applications_screen.dart';
+import 'package:connect/features/student/screens/student_profile_screen.dart';
 
 class StudentHomeScreen extends StatefulWidget {
   const StudentHomeScreen({super.key});
@@ -13,13 +14,19 @@ class StudentHomeScreen extends StatefulWidget {
 
 class _StudentHomeScreenState extends State<StudentHomeScreen> {
   int _currentIndex = 0;
+  late final List<Widget> _screens;
 
-  final List<Widget> _screens = const [
-    FeedScreen(),
-    SearchScreens(),
-    BookmarkScreen(),
-    MyApplicationsScreen(),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      FeedScreen(onSeeAll: () => setState(() => _currentIndex = 1)),
+      const SearchScreens(),
+      const BookmarkScreen(),
+      const MyApplicationsScreen(),
+      const StudentProfileScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +47,10 @@ class _StudentHomeScreenState extends State<StudentHomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.work_outline),
             label: 'Applications',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
           ),
         ],
       ),
