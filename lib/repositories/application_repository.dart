@@ -12,6 +12,8 @@ class ApplicationRepository {
     required String startupUid,
     required String coverLetter,
     required List<String> portfolioLinks,
+    String? cvUrl,
+    String? coverLetterFileUrl,
   }) async {
     final batch = _firestore.batch();
 
@@ -25,6 +27,8 @@ class ApplicationRepository {
       'startupUid': startupUid,
       'coverLetter': coverLetter,
       'portfolioLinks': portfolioLinks,
+      'cvUrl': cvUrl,
+      'coverLetterFileUrl': coverLetterFileUrl,
       'status': 'Pending',
       'createdAt': FieldValue.serverTimestamp(),
     });
@@ -60,9 +64,49 @@ class ApplicationRepository {
     String applicationId,
     String status,
   ) async {
-    await _firestore
+    await _firestore.collection('Applications').doc(applicationId).update({
+      'status': status,
+    });
+  }
+
+  Future<bool> hasApplied(String studentUid, String opportunityId) async {
+    final snapshot = await _firestore
         .collection('Applications')
-        .doc(applicationId)
-        .update({'status': status});
+        .where('studentUid', isEqualTo: studentUid)
+        .where('opportunityId', isEqualTo: opportunityId)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
+  Stream<Set<String>> watchAppliedOpportunityIds(String studentUid) {
+    return _firestore
+        .collection('Applications')
+        .where('studentUid', isEqualTo: studentUid)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => doc['opportunityId'] as String)
+            .toSet());
+  }
+
+  Stream<List<Map<String, dynamic>>> watchApplicationsForStudent(
+    String studentUid,
+  ) {
+    return _firestore
+        .collection('Applications')
+        .where('studentUid', isEqualTo: studentUid)
+        .snapshots()
+        .map((snapshot) {
+          final docs = snapshot.docs
+              .map((doc) => {'id': doc.id, ...doc.data()})
+              .toList();
+          docs.sort((a, b) {
+            final aTime = a['createdAt'];
+            final bTime = b['createdAt'];
+            if (aTime == null || bTime == null) return 0;
+            return bTime.compareTo(aTime);
+          });
+          return docs;
+        });
   }
 }

@@ -1,5 +1,8 @@
+import 'package:connect/features/student/components/document_upload_button.dart';
 import 'package:connect/features/student/data/feed_data.dart';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/storage_repository.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +21,24 @@ class _ApplyScreenState extends State<ApplyScreen> {
     TextEditingController(),
   ];
   bool _isLoading = false;
+  PlatformFile? _cvFile;
+  PlatformFile? _coverLetterFile;
+
+  Future<void> _pickDocument(bool isCv) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'docx'],
+    );
+    if (result != null && mounted) {
+      setState(() {
+        if (isCv) {
+          _cvFile = result.files.single;
+        } else {
+          _coverLetterFile = result.files.single;
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -29,9 +50,12 @@ class _ApplyScreenState extends State<ApplyScreen> {
   }
 
   Future<void> _submit() async {
-    if (_applicationController.text.trim().isEmpty) {
+    final coverLetterText = _applicationController.text.trim();
+    if (coverLetterText.isEmpty && _coverLetterFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please write a cover letter')),
+        const SnackBar(
+          content: Text('Please write a cover letter or upload a cover letter document'),
+        ),
       );
       return;
     }
@@ -39,6 +63,30 @@ class _ApplyScreenState extends State<ApplyScreen> {
     setState(() => _isLoading = true);
     try {
       final user = FirebaseAuth.instance.currentUser!;
+      final alreadyApplied = await ApplicationRepository().hasApplied(
+        user.uid,
+        widget.opportunity.opportunityId,
+      );
+      if (alreadyApplied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('You have already applied to this opportunity'),
+            ),
+          );
+          setState(() => _isLoading = false);
+        }
+        return;
+      }
+
+      final storage = StorageRepository();
+      final cvUrl = _cvFile != null
+          ? await storage.uploadDocument(_cvFile!, 'cvs')
+          : null;
+      final coverLetterFileUrl = _coverLetterFile != null
+          ? await storage.uploadDocument(_coverLetterFile!, 'cover_letters')
+          : null;
+
       final userDoc = await FirebaseFirestore.instance
           .collection('Users')
           .doc(user.uid)
@@ -55,14 +103,15 @@ class _ApplyScreenState extends State<ApplyScreen> {
 
       await ApplicationRepository().submitApplication(
         studentUid: user.uid,
-        studentName:
-            studentName.isEmpty ? (user.email ?? 'Unknown') : studentName,
+        studentName: studentName.isEmpty ? (user.email ?? 'Unknown') : studentName,
         studentEmail: user.email ?? '',
         opportunityId: widget.opportunity.opportunityId,
         opportunityTitle: widget.opportunity.role,
         startupUid: widget.opportunity.startupUid,
-        coverLetter: _applicationController.text.trim(),
+        coverLetter: coverLetterText,
         portfolioLinks: portfolioLinks,
+        cvUrl: cvUrl,
+        coverLetterFileUrl: coverLetterFileUrl,
       );
 
       if (mounted) {
@@ -76,9 +125,9 @@ class _ApplyScreenState extends State<ApplyScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to submit: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -204,7 +253,7 @@ class _ApplyScreenState extends State<ApplyScreen> {
                     ),
                   ),
                   TextSpan(
-                    text: '(required)',
+                    text: '(optional if uploading a document below)',
                     style: TextStyle(fontSize: 13, color: Colors.grey),
                   ),
                 ],
@@ -223,6 +272,30 @@ class _ApplyScreenState extends State<ApplyScreen> {
                   borderSide: BorderSide(color: Color(0xFFE2E8F0)),
                 ),
               ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Upload CV',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            DocumentUploadButton(
+              label: 'Upload your CV',
+              file: _cvFile,
+              onPick: () => _pickDocument(true),
+              onRemove: () => setState(() => _cvFile = null),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Upload Cover Letter Document — Optional if written above',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            DocumentUploadButton(
+              label: 'Upload cover letter document',
+              file: _coverLetterFile,
+              onPick: () => _pickDocument(false),
+              onRemove: () => setState(() => _coverLetterFile = null),
             ),
             const SizedBox(height: 16),
             const Text(
