@@ -25,7 +25,10 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _salaryController = TextEditingController();
+  final TextEditingController _contactEmailController = TextEditingController();
+  final TextEditingController _contactPhoneController = TextEditingController();
   String? _selectedRoleType;
+  DateTime? _deadline;
   Set<String> _selectedSkills = {};
   String? _selectedDuration;
   String? _selectedCompensation;
@@ -58,6 +61,8 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
     _descriptionController.dispose();
     _salaryController.dispose();
     _addressController.dispose();
+    _contactEmailController.dispose();
+    _contactPhoneController.dispose();
     super.dispose();
   }
 
@@ -78,6 +83,9 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
           ? 'remote'
           : 'inPerson',
       address: _addressController.text.trim(),
+      deadline: _deadline,
+      contactEmail: _contactEmailController.text.trim(),
+      contactPhone: _contactPhoneController.text.trim(),
     );
     widget.onPosted?.call();
   }
@@ -379,6 +387,88 @@ class _PostOpportunityScreenState extends State<PostOpportunityScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Contact Email — Optional",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _contactEmailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: "e.g. hello@mystartup.com",
+                      filled: true,
+                      fillColor: const Color(0xFFF0F4FF),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Contact Phone — Optional",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _contactPhoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: "e.g. +250 788 000 000",
+                      filled: true,
+                      fillColor: const Color(0xFFF0F4FF),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Application Deadline — Optional",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(const Duration(days: 14)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2099),
+                      );
+                      if (picked != null) setState(() => _deadline = picked);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF0F4FF),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                          const SizedBox(width: 8),
+                          Text(
+                            _deadline == null
+                                ? 'Select deadline (optional)'
+                                : '${_deadline!.day}/${_deadline!.month}/${_deadline!.year}',
+                            style: TextStyle(
+                              color: _deadline == null ? Colors.grey : Colors.black,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_deadline != null)
+                            GestureDetector(
+                              onTap: () => setState(() => _deadline = null),
+                              child: const Icon(Icons.close, size: 16, color: Colors.grey),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   const Text(
                     "Preview",
