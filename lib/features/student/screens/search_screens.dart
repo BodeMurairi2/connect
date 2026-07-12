@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:connect/features/student/components/opportunity_card.dart';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/bookmark_repository.dart';
 import 'package:connect/repositories/opportunity_repository.dart';
+import 'package:connect/repositories/student_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
@@ -18,19 +20,27 @@ class _SearchScreensState extends State<SearchScreens> {
   String _query = '';
   String _selectedFilter = 'All';
   List<FeedOpportunity> _allOpportunities = [];
-  Stream<Set<String>> _appliedIdsStream = const Stream.empty();
+  List<Map<String, dynamic>> _rawOpportunities = [];
+  Set<String> _appliedIds = {};
+  Set<String> _bookmarkedIds = {};
   StreamSubscription<User?>? _authSub;
+  StreamSubscription<Set<String>>? _appliedSub;
+  StreamSubscription<Set<String>>? _bookmarkSub;
 
   @override
   void initState() {
     super.initState();
-    _loadOpportunities();
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null && mounted) {
-        setState(() {
-          _appliedIdsStream = ApplicationRepository()
-              .watchAppliedOpportunityIds(user.uid);
-        });
+        _appliedSub?.cancel();
+        _bookmarkSub?.cancel();
+        _appliedSub = ApplicationRepository()
+            .watchAppliedOpportunityIds(user.uid)
+            .listen((ids) { if (mounted) setState(() => _appliedIds = ids); });
+        _bookmarkSub = BookmarkRepository()
+            .watchBookmarkedIds(user.uid)
+            .listen((ids) { if (mounted) setState(() => _bookmarkedIds = ids); });
+        _loadOpportunities(user.uid);
       }
     });
   }
@@ -39,51 +49,59 @@ class _SearchScreensState extends State<SearchScreens> {
   void dispose() {
     _searchController.dispose();
     _authSub?.cancel();
+    _appliedSub?.cancel();
+    _bookmarkSub?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadOpportunities() async {
-    final data = await OpportunityRepository().getOpportunities();
+  Future<void> _loadOpportunities(String uid) async {
+    final results = await Future.wait([
+      StudentRepository().getStudentProfile(uid),
+      OpportunityRepository().getOpportunities(),
+    ]);
+    final profile = results[0] as Map<String, dynamic>?;
+    final data = results[1] as List<Map<String, dynamic>>;
+    final skills = profile != null
+        ? Set<String>.from(profile['skills'] ?? [])
+        : <String>{};
     if (mounted) {
       setState(() {
-        _allOpportunities = data.map(_mapToOpportunity).toList();
+        _rawOpportunities = data;
+        _allOpportunities = data
+            .map((m) => mapToFeedOpportunity(m, studentSkills: skills))
+            .toList();
       });
     }
   }
 
-  FeedOpportunity _mapToOpportunity(Map<String, dynamic> map) {
-    final name = map['startupName'] as String? ?? '';
-    return FeedOpportunity(
-      opportunityId: map['id'] as String? ?? '',
-      startupUid: map['startupUid'] as String? ?? '',
-      startupName: name,
-      role: map['title'] as String? ?? '',
-      domain: map['roleType'] as String? ?? '',
-      compensation: map['compensation'] as String? ?? '',
-      duration: map['duration'] as String? ?? '',
-      location: map['locationType'] as String? ?? '',
-      description: map['description'] as String? ?? '',
-      skills: List<String>.from(map['skills'] ?? []),
-      avatarColor: Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
-      isVerified: false,
-      skillsMatch: 0,
-      postedAt: 'recently',
-      matchedSkills: [],
-      responsibilities: [],
-    );
+  Future<void> _toggleBookmark(String opportunityId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final repo = BookmarkRepository();
+    if (_bookmarkedIds.contains(opportunityId)) {
+      await repo.removeBookmark(uid, opportunityId);
+    } else {
+      final raw = _rawOpportunities.firstWhere(
+        (r) => r['id'] == opportunityId,
+        orElse: () => {},
+      );
+      if (raw.isNotEmpty) await repo.addBookmark(uid, raw);
+    }
   }
 
-  List<FeedOpportunity> get _results => _allOpportunities.where((o) {
-    final matchesQuery =
-        _query.isEmpty ||
-        o.role.toLowerCase().contains(_query.toLowerCase()) ||
-        o.startupName.toLowerCase().contains(_query.toLowerCase());
-    final matchesFilter = _selectedFilter == 'All' || o.domain == _selectedFilter;
-    return matchesQuery && matchesFilter;
-  }).toList();
+  List<({FeedOpportunity opportunity})> get _results =>
+      _allOpportunities.where((o) {
+        final matchesQuery = _query.isEmpty ||
+            o.role.toLowerCase().contains(_query.toLowerCase()) ||
+            o.startupName.toLowerCase().contains(_query.toLowerCase());
+        final matchesFilter =
+            _selectedFilter == 'All' || o.domain == _selectedFilter;
+        return matchesQuery && matchesFilter;
+      }).map((o) => (opportunity: o)).toList();
 
   @override
   Widget build(BuildContext context) {
+    final results = _results;
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       appBar: AppBar(
@@ -114,74 +132,70 @@ class _SearchScreensState extends State<SearchScreens> {
         children: [
           Container(
             color: Colors.white,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
-                children:
-                    [
-                          'All',
-                          'Engineering',
-                          'Design',
-                          'Finance',
-                          'Agriculture',
-                          'Education',
-                        ]
-                        .map(
-                          (filter) => Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ChoiceChip(
-                              label: Text(filter),
-                              selected: _selectedFilter == filter,
-                              onSelected: ((value) =>
-                                  setState(() => _selectedFilter = filter)),
-                              selectedColor: Colors.blue,
-                              labelStyle: TextStyle(
-                                color: _selectedFilter == filter
-                                    ? Colors.white
-                                    : Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
+                children: [
+                  'All',
+                  'Engineering',
+                  'Design',
+                  'Marketing',
+                  'Finance',
+                  'Agriculture',
+                  'Education',
+                ]
+                    .map(
+                      (filter) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          label: Text(filter),
+                          selected: _selectedFilter == filter,
+                          onSelected: (_) =>
+                              setState(() => _selectedFilter = filter),
+                          selectedColor: Colors.blue,
+                          labelStyle: TextStyle(
+                            color: _selectedFilter == filter
+                                ? Colors.white
+                                : Colors.black87,
+                            fontWeight: FontWeight.w500,
                           ),
-                        )
-                        .toList(),
+                        ),
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ),
           Expanded(
-            child: _results.isEmpty
+            child: results.isEmpty
                 ? Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          Icons.search_off,
-                          size: 48,
-                          color: Colors.grey.shade300,
-                        ),
+                        Icon(Icons.search_off,
+                            size: 48, color: Colors.grey.shade300),
                         const SizedBox(height: 12),
                         Text(
-                          'No results for "$_query"',
+                          _query.isEmpty
+                              ? 'No opportunities available'
+                              : 'No results for "$_query"',
                           style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 14,
-                          ),
+                              color: Colors.grey, fontSize: 14),
                         ),
                       ],
                     ),
                   )
-                : StreamBuilder<Set<String>>(
-                    stream: _appliedIdsStream,
-                    builder: (context, appliedSnapshot) {
-                      final appliedIds = appliedSnapshot.data ?? {};
-                      return ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _results.length,
-                        itemBuilder: (context, index) => OpportunityCard(
-                          opportunity: _results[index],
-                          isApplied: appliedIds.contains(_results[index].opportunityId),
-                        ),
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final o = results[index].opportunity;
+                      return OpportunityCard(
+                        opportunity: o,
+                        isApplied: _appliedIds.contains(o.opportunityId),
+                        isBookmarked: _bookmarkedIds.contains(o.opportunityId),
+                        onBookmark: () => _toggleBookmark(o.opportunityId),
                       );
                     },
                   ),

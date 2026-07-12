@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:connect/repositories/application_repository.dart';
+import 'package:connect/repositories/bookmark_repository.dart';
 import 'package:connect/repositories/opportunity_repository.dart';
+import 'package:connect/repositories/student_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:connect/features/student/data/feed_data.dart';
@@ -9,7 +11,8 @@ import 'package:connect/features/student/components/feed_stats_row.dart';
 import 'package:connect/features/student/components/opportunity_card.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  final VoidCallback? onSeeAll;
+  const FeedScreen({super.key, this.onSeeAll});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -17,20 +20,34 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   String _selectedCategory = 'All';
-  Future<List<Map<String, dynamic>>> _opportunitiesFuture = Future.value([]);
-  Stream<Set<String>> _appliedIdsStream = const Stream.empty();
+  bool _isLoading = true;
+  List<FeedOpportunity> _opportunities = [];
+  List<Map<String, dynamic>> _rawOpportunities = [];
+  Set<String> _studentSkills = {};
+  Set<String> _appliedIds = {};
+  Set<String> _bookmarkedIds = {};
   StreamSubscription<User?>? _authSub;
+  StreamSubscription<Set<String>>? _appliedSub;
+  StreamSubscription<Set<String>>? _bookmarkSub;
 
   @override
   void initState() {
     super.initState();
-    _opportunitiesFuture = OpportunityRepository().getOpportunities();
     _authSub = FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null && mounted) {
-        setState(() {
-          _appliedIdsStream = ApplicationRepository()
-              .watchAppliedOpportunityIds(user.uid);
-        });
+        _appliedSub?.cancel();
+        _bookmarkSub?.cancel();
+        _appliedSub = ApplicationRepository()
+            .watchAppliedOpportunityIds(user.uid)
+            .listen((ids) {
+              if (mounted) setState(() => _appliedIds = ids);
+            });
+        _bookmarkSub = BookmarkRepository().watchBookmarkedIds(user.uid).listen(
+          (ids) {
+            if (mounted) setState(() => _bookmarkedIds = ids);
+          },
+        );
+        _loadOpportunities(user.uid);
       }
     });
   }
@@ -38,34 +55,121 @@ class _FeedScreenState extends State<FeedScreen> {
   @override
   void dispose() {
     _authSub?.cancel();
+    _appliedSub?.cancel();
+    _bookmarkSub?.cancel();
     super.dispose();
   }
 
-  FeedOpportunity _mapToOpportunity(Map<String, dynamic> map) {
-    final name = map['startupName'] as String? ?? '';
-    return FeedOpportunity(
-      opportunityId: map['id'] as String? ?? '',
-      startupUid: map['startupUid'] as String? ?? '',
-      startupName: name,
-      role: map['title'] as String? ?? '',
-      domain: map['roleType'] as String? ?? '',
-      compensation: map['compensation'] as String? ?? '',
-      duration: map['duration'] as String? ?? '',
-      location: map['locationType'] as String? ?? '',
-      avatarColor:
-          Colors.primaries[name.hashCode.abs() % Colors.primaries.length],
-      isVerified: false,
-      skillsMatch: 0,
-      postedAt: 'recently',
-      description: map['description'] as String? ?? '',
-      skills: List<String>.from(map['skills'] ?? []),
-      matchedSkills: [],
-      responsibilities: [],
+  Future<void> _loadOpportunities(String uid) async {
+    // Load student skills and opportunities in parallel
+    final results = await Future.wait([
+      StudentRepository().getStudentProfile(uid),
+      OpportunityRepository().getOpportunities(),
+    ]);
+
+    final profile = results[0] as Map<String, dynamic>?;
+    final data = results[1] as List<Map<String, dynamic>>;
+    final skills = profile != null
+        ? Set<String>.from(profile['skills'] ?? [])
+        : <String>{};
+
+    if (mounted) {
+      setState(() {
+        _studentSkills = skills;
+        _rawOpportunities = data;
+        _opportunities = data
+            .map((m) => mapToFeedOpportunity(m, studentSkills: skills))
+            .toList();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _toggleBookmark(String opportunityId) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    final repo = BookmarkRepository();
+    if (_bookmarkedIds.contains(opportunityId)) {
+      await repo.removeBookmark(uid, opportunityId);
+    } else {
+      final raw = _rawOpportunities.firstWhere(
+        (r) => r['id'] == opportunityId,
+        orElse: () => {},
+      );
+      if (raw.isNotEmpty) await repo.addBookmark(uid, raw);
+    }
+  }
+
+  List<({FeedOpportunity opportunity, Map<String, dynamic> raw})> _filterBy(
+    List<FeedOpportunity> list,
+  ) {
+    final result =
+        <({FeedOpportunity opportunity, Map<String, dynamic> raw})>[];
+    for (var i = 0; i < _opportunities.length; i++) {
+      final o = _opportunities[i];
+      if (!list.contains(o)) continue;
+      if (_selectedCategory == 'All' || o.domain == _selectedCategory) {
+        result.add((opportunity: o, raw: _rawOpportunities[i]));
+      }
+    }
+    return result;
+  }
+
+  Widget _sectionHeader(String title, {Widget? trailing}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+              letterSpacing: -0.3,
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+  }
+
+  Widget _cardSliver(
+    List<({FeedOpportunity opportunity, Map<String, dynamic> raw})> items,
+  ) {
+    return SliverPadding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      sliver: SliverList(
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final item = items[index];
+          return OpportunityCard(
+            opportunity: item.opportunity,
+            featured: index == 0,
+            isApplied: _appliedIds.contains(item.opportunity.opportunityId),
+            isBookmarked: _bookmarkedIds.contains(
+              item.opportunity.opportunityId,
+            ),
+            onBookmark: () => _toggleBookmark(item.opportunity.opportunityId),
+          );
+        }, childCount: items.length),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final recommended = _opportunities
+        .where((o) => o.skillsMatch >= 50)
+        .toList();
+    final others = _opportunities.where((o) => o.skillsMatch < 50).toList();
+
+    final filteredRecommended = _filterBy(recommended);
+    final filteredOthers = _filterBy(others);
+    final hasRecommended =
+        _studentSkills.isNotEmpty && filteredRecommended.isNotEmpty;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F4F9),
       body: CustomScrollView(
@@ -76,81 +180,65 @@ class _FeedScreenState extends State<FeedScreen> {
             onCategoryChanged: (category) =>
                 setState(() => _selectedCategory = category),
           ),
-          const FeedStatsRow(),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Recommended for you',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  Text(
-                    'See all',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+          FeedStatsRow(
+            openCount: _opportunities.length,
+            appliedCount: _appliedIds.length,
+          ),
+          if (_isLoading)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: Center(child: CircularProgressIndicator()),
               ),
-            ),
-          ),
-          StreamBuilder<Set<String>>(
-            stream: _appliedIdsStream,
-            builder: (context, appliedSnapshot) {
-              final appliedIds = appliedSnapshot.data ?? {};
-              return FutureBuilder<List<Map<String, dynamic>>>(
-                future: _opportunitiesFuture,
-                builder: (context, connexion) {
-                  if (connexion.connectionState == ConnectionState.waiting) {
-                    return const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(40),
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    );
-                  }
-                  if (connexion.hasError) {
-                    return SliverToBoxAdapter(
-                      child: Center(child: Text('Error: ${connexion.error}')),
-                    );
-                  }
-                  final opportunities = (connexion.data ?? [])
-                      .map(_mapToOpportunity)
-                      .where(
-                        (opportunity) =>
-                            _selectedCategory == 'All' ||
-                            opportunity.domain == _selectedCategory,
-                      )
-                      .toList();
-                  return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) => OpportunityCard(
-                          opportunity: opportunities[index],
-                          featured: index == 0,
-                          isApplied: appliedIds.contains(
-                            opportunities[index].opportunityId,
-                          ),
-                        ),
-                        childCount: opportunities.length,
+            )
+          else ...[
+            if (hasRecommended) ...[
+              SliverToBoxAdapter(
+                child: _sectionHeader(
+                  'Recommended for You ⚡',
+                  trailing: GestureDetector(
+                    onTap: widget.onSeeAll,
+                    child: const Text(
+                      'See all',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                  );
-                },
-              );
-            },
-          ),
+                  ),
+                ),
+              ),
+              _cardSliver(filteredRecommended),
+              const SliverToBoxAdapter(child: SizedBox(height: 8)),
+              SliverToBoxAdapter(
+                child: _sectionHeader(
+                  filteredOthers.isEmpty
+                      ? 'All Opportunities'
+                      : 'More Opportunities',
+                ),
+              ),
+            ] else
+              SliverToBoxAdapter(
+                child: _sectionHeader(
+                  'All Opportunities',
+                  trailing: GestureDetector(
+                    onTap: widget.onSeeAll,
+                    child: const Text(
+                      'See all',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            _cardSliver(
+              hasRecommended ? filteredOthers : _filterBy(_opportunities),
+            ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
       ),
