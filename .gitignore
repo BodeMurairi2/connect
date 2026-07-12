@@ -46,3 +46,5 @@ app.*.map.json
 ui/
 implementation_Plan.docx
 .env.json
+push_bash.sh
+test/
